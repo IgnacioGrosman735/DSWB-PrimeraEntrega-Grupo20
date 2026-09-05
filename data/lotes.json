@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "hectareas": 250,
+    "cultivo": "arroz",
+    "productor": "Gallo",
+    "ubicacion": "Córdoba"
+  },
+  {
+    "id": 2,
+    "hectareas": 100,
+    "cultivo": "soja",
+    "productor": "El Colibrí",
+    "ubicacion": "Rosario"
+  },
+  {
+    "id": 3,
+    "hectareas": 50,
+    "cultivo": "maiz",
+    "productor": "Los Choclos Hermanos",
+    "ubicacion": "Santa Fe"
+  }
+]

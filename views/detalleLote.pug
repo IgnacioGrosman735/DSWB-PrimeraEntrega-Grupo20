@@ -1,0 +1,13 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title Agrotec - Lote #{lote.id}
+  body
+    h1 Lote #{lote.id}
+    p Cultivo: #{tipoCultivo.nombre}
+    p Productor: #{productor.nombre}
+    p Ubicación: #{lote.ubicacion}
+    p Hectáreas: #{lote.hectareas}
+    a(href="/web/lotes") Volver al listado

@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "id": 1,
+    "loteId": 1,
+    "tecnicoId": 1,
+    "fecha": "2026-09-10",
+    "tipoCultivoId": 1,
+    "estadoCultivo": "Bueno",
+    "observaciones": "El cultivo presenta un desarrollo normal y no se detectaron anomalías.",
+    "nivelAlerta": "Normal"
+  },
+  {
+    "id": 2,
+    "loteId": 2,
+    "tecnicoId": 2,
+    "fecha": "2026-09-11",
+    "tipoCultivoId": 2,
+    "estadoCultivo": "Requiere seguimiento",
+    "observaciones": "Se detectaron sectores con menor crecimiento. Se recomienda realizar un nuevo control.",
+    "nivelAlerta": "Atención"
+  },
+  {
+    "id": 3,
+    "loteId": 3,
+    "tecnicoId": 1,
+    "fecha": "2026-09-12",
+    "tipoCultivoId": 3,
+    "estadoCultivo": "Comprometido",
+    "observaciones": "Se observaron signos de deterioro en diferentes sectores del lote.",
+    "nivelAlerta": "Crítico"
+  },
+  {
+    "id": 4,
+    "loteId": 1,
+    "tecnicoId": 2,
+    "fecha": "2026-09-14",
+    "tipoCultivoId": 1,
+    "estadoCultivo": "Bueno",
+    "observaciones": "Se realizó un nuevo control y el cultivo continúa evolucionando normalmente.",
+    "nivelAlerta": "Normal"
+  },
+  {
+    "id": 5,
+    "loteId": 2,
+    "tecnicoId": 1,
+    "fecha": "2026-09-15",
+    "tipoCultivoId": 2,
+    "estadoCultivo": "En observación",
+    "observaciones": "Continúan los sectores con crecimiento irregular. Se mantiene el seguimiento.",
+    "nivelAlerta": "Atención"
+  },
+  {
+    "id": 6,
+    "loteId": 3,
+    "tecnicoId": 2,
+    "fecha": "2026-09-16",
+    "tipoCultivoId": 3,
+    "estadoCultivo": "En recuperación",
+    "observaciones": "Se observa una mejora respecto del control anterior, aunque el lote continúa requiriendo seguimiento.",
+    "nivelAlerta": "Atención"
+  }
+]

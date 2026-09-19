@@ -4,6 +4,7 @@ const logger = require("./middleware/logger");
 const lotesRoutes = require("./routes/lotesRoutes");
 const vistasRoutes = require("./routes/vistasRoutes");
 const productoresRoutes = require("./routes/productoresRoutes");
+const tecnicosRoutes = require("./routes/tecnicosRoutes");
 const observacionesRoutes = require("./routes/observacionesRoutes");
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.json());
 // Rutas de la API y de las vistas.
 app.use("/lotes", lotesRoutes);
 app.use("/productores", productoresRoutes);
+app.use("/tecnicos", tecnicosRoutes);
 app.use("/observaciones", observacionesRoutes);
 app.use("/web/lotes", vistasRoutes);
 app.get("/", (req, res) => res.redirect("/web/lotes"));

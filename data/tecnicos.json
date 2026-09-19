@@ -1,4 +1,50 @@
 [
-  { "id": 1, "nombre": "Juan Pérez" },
-  { "id": 2, "nombre": "María García" }
+  {
+    "id": 1,
+    "nombre": "Pedro González"
+  },
+  {
+    "id": 2,
+    "nombre": "Mónica López"
+  },
+  {
+    "id": 3,
+    "nombre": "Antonio Escudo"
+  },
+  {
+    "id": 4,
+    "nombre": "Anibal Moreno"
+  },
+  {
+    "id": 5,
+    "nombre": "Ricardo Yomo"
+  },
+  {
+    "id": 6,
+    "nombre": "Eugenia Santana"
+  },
+  {
+    "id": 7,
+    "nombre": "Beatriz Insaurralde"
+  },
+  {
+    "id": 8,
+    "nombre": "Oscar Gallo"
+  },
+  {
+    "id": 9,
+    "nombre": "Celeste Caminos"
+  },
+  {
+    "id": 10,
+    "nombre": "Horario Larreta"
+  },
+  {
+    "id": 11,
+    "nombre": "Esteban Quito"
+  },
+  {
+    "id": 12,
+    "nombre": "Analía Coco"
+  }
 ]

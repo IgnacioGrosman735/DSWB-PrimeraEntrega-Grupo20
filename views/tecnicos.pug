@@ -1,0 +1,16 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title Agrotec - Técnicos
+  body
+    h1 Agrotec: Técnicos
+    if tecnicos.length
+      ul
+        each tecnico in tecnicos
+          li
+            a(href="/web/tecnicos/" + tecnico.id) Técnico #{tecnico.id} — #{tecnico.nombre}
+    else
+      p No hay técnicos registrados.
+    a(href="/tecnicos") Ver técnicos en JSON

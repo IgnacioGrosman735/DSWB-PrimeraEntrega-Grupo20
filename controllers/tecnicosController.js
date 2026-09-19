@@ -77,10 +77,29 @@ const eliminarTecnico = (req, res) => {
     res.json({ mensaje: "Técnico eliminado" });
 };
 
+// Vistas web: comparten la lectura JSON con el CRUD.
+const mostrarTecnicos = (req, res) => {
+    res.render("tecnicos", { tecnicos: leerTecnicos() });
+};
+
+const mostrarTecnico = (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).render("error", { mensaje: "El ID debe ser un entero positivo" });
+    }
+    const tecnico = leerTecnicos().find(t => t.id === id);
+    if (!tecnico) {
+        return res.status(404).render("error", { mensaje: "El técnico no existe" });
+    }
+    res.render("detalleTecnico", { tecnico });
+};
+
 module.exports = {
     obtenerTecnicos,
     obtenerTecnicoPorId,
     crearTecnico,
     actualizarTecnico,
-    eliminarTecnico
+    eliminarTecnico,
+    mostrarTecnicos,
+    mostrarTecnico
 };

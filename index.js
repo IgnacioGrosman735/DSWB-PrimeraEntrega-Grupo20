@@ -20,7 +20,7 @@ app.use("/lotes", lotesRoutes);
 app.use("/productores", productoresRoutes);
 app.use("/tecnicos", tecnicosRoutes);
 app.use("/observaciones", observacionesRoutes);
-app.use("/web/lotes", vistasRoutes);
+app.use("/web", vistasRoutes);
 app.get("/", (req, res) => res.redirect("/web/lotes"));
 
 app.use((req, res) => {
@@ -33,7 +33,7 @@ app.use((error, req, res, next) => {
     const mensaje = estado >= 500 ? "Error interno del servidor" : "Solicitud inválida";
     console.error(error.message);
 
-    if (req.originalUrl.startsWith("/web/lotes")) {
+    if (req.originalUrl.startsWith("/web")) {
         return res.status(estado).render("error", { mensaje });
     }
 

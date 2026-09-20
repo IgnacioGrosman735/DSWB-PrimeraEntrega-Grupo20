@@ -2,10 +2,11 @@
 
 AgroTec brinda servicios de monitoreo a productores agrícolas. Esta aplicación centraliza la información que antes se registraba en papel y planillas, y permite consultar el historial de observaciones de cada lote.
 
-Actualmente administra productores, Técnicos  y lotes, registra observaciones y permite consultar el historial, los lotes por alerta y las observaciones por técnico.
-## Estado actual y alcance previsto
+Actualmente administra productores, técnicos y lotes, registra observaciones y permite consultar el historial, los lotes por alerta y las observaciones por técnico.
 
-| Recurso | Estado actual | Alcance previsto |
+## Estado actual del proyecto
+
+| Recurso | Estado actual | Funcionalidad |
 | --- | --- | --- |
 | Productores | CRUD implementado | Administración mediante la API. |
 | Lotes | CRUD e historial implementados | Administración mediante la API. |
@@ -13,7 +14,7 @@ Actualmente administra productores, Técnicos  y lotes, registra observaciones y
 | Observaciones | Registro y consulta implementados | Conservar el historial sin eliminación. |
 | Tipos de cultivo | Catálogo fijo en `data/tiposCultivo.json` | Mantener los tipos de cultivo que abarca el negocio, sin CRUD público. |
 
-El catálogo de tipos de cultivo se define como fijo. Actualmente incluye Arroz, Soja y Maíz.
+El catálogo de tipos de cultivo se define como fijo. Actualmente incluye Arroz, Soja y Maíz. Se evaluará luego si hace falta la implementación de CRUD.
 
 ## Tecnologías e instalación
 
@@ -39,11 +40,11 @@ No hay un script `test` ni pruebas automatizadas. Las pruebas de la entrega se r
 ## Estructura
 
 - `index.js`: configuración de Express, Pug, logger, rutas y errores básicos.
-- `models/`: Productor, Tecnico y Lote utilizan `esValido()`; Observacion utiliza `esValida()` y el método estático `alertaValida()`.TipoCultivo tiene constructor y propiedades, sin métodos de validación propios.
-- `controllers/`: productores, Tecnicos, lotes y observaciones; procesan requests, validan relaciones y leen/escriben JSON.
-- `routes/`: rutas de productores, tecnicos, lotes, observaciones y vistas.
-- `middleware/logger.js`: registra fecha/hora, método y URL, y llama a next(). No valida datos.
-- `views/`: listado de lotes, detalle y error mediante Pug y res.render().
+- `models/`: Productor, Tecnico y Lote utilizan `esValido()`; Observacion utiliza `esValida()` y el método estático `alertaValida()`. TipoCultivo tiene constructor y propiedades, sin métodos de validación propios.
+- `controllers/`: productores, técnicos, lotes y observaciones; procesan requests, validan relaciones y leen/escriben JSON.
+- `routes/`: rutas de productores, técnicos, lotes, observaciones y vistas.
+- `middleware/logger.js`: registra fecha/hora, método y URL, y llama a next(). No valida datos en esta instancia.
+- `views/`: listados y detalles de lotes y técnicos (`lotes.pug`, `detalleLote.pug`, `tecnicos.pug`, `detalleTecnico.pug`) y `error.pug`, renderizados mediante `res.render()`.
 - `data/`: productores.json, lotes.json, tecnicos.json, tiposCultivo.json y observaciones.json.
 
 Los controladores utilizan `fs.readFileSync()`, `JSON.parse()`, `fs.writeFileSync()` y `JSON.stringify()` para la persistencia. Los archivos JSON deben existir antes de iniciar las operaciones; no hay creación automática de archivos ni recuperación de datos.
@@ -62,11 +63,11 @@ Los datos actualmente incluidos en los archivos JSON son:
 
 - Tres productores: 1 = Gallo, 2 = El Colibrí y 3 = Los Choclos Hermanos.
 - Tres lotes: 1 = Córdoba, 250 hectáreas; 2 = Rosario, 100 hectáreas; 3 = Santa Fe, 50 hectáreas. Cada uno referencia al productor y tipo de cultivo con su mismo número de ID.
-- Dos técnicos: 1 = Juan Pérez y 2 = María García.
+- Doce técnicos con IDs del 1 al 12 en `data/tecnicos.json`. Los técnicos relacionados con las observaciones actuales son 1 = Pedro González y 2 = Mónica López.
 - Catálogo fijo de cultivos: 1 = Arroz, 2 = Soja y 3 = Maíz.
 - Seis observaciones con IDs del 1 al 6, fechadas entre el 10 y el 16 de septiembre de 2026. Cada lote tiene dos observaciones.
 
-Las pruebas de creación modifican los archivos JSON. Los ejemplos usan IDs libres respecto de esta carga inicial: 4 para productor y lote, y 7 para observación. Si ya se ejecutaron, elegir otros IDs libres y adaptar las solicitudes siguientes.
+Las pruebas de creación modifican los archivos JSON. Los ejemplos usan IDs libres respecto de esta carga inicial: 4 para productor y lote, 13 para técnico y 7 para observación. Si ya se ejecutaron, elegir otros IDs libres y adaptar las solicitudes siguientes.
 
 El cultivo del lote y el cultivo registrado en una observación usan IDs. Una observación conserva el cultivo registrado en esa fecha aunque el lote se actualice después.
 
@@ -78,15 +79,16 @@ El cultivo del lote y el cultivo registrado en una observación usan IDs. Una ob
 - Los únicos niveles de alerta admitidos son `Normal`, `Atención` y `Crítico`, respetando mayúsculas y tildes.
 - Las observaciones se conservan como historial. No existen endpoints PUT ni DELETE de observaciones, ni borrado lógico.
 - No se puede eliminar un productor con lotes asociados.
+- No se puede eliminar un técnico con observaciones registradas, para conservar las relaciones del historial.
 - No se puede eliminar un lote con observaciones: así se preservan el historial y sus referencias.
 - El cliente envía el `id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. No se modifican los IDs del recurso mediante PUT.
 - Las hectáreas deben ser numéricas, finitas y mayores a cero. Nombre, ubicación, estado del cultivo y texto de observaciones deben ser textos no vacíos, según el recurso.
-- PUT de lote requiere al menos uno de estos campos: `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`. Conserva los campos omitidos y rechaza valores inválidos, incluido `null`. PUT de productor requiere `nombre`.
-- Las validaciones se realizan en models/controllers. Se utilizan express.json(), el logger y los middleware de ruta inexistente (404) y manejo global de errores. No hay middleware de validación de negocio por ahora.
+- PUT de lote requiere al menos uno de estos campos: `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`. Conserva los campos omitidos y rechaza valores inválidos, incluido `null`. PUT de productor y de técnico requieren `nombre`.
+- Las validaciones se realizan en models/controllers. Se utilizan express.json(), el logger y los middleware de ruta inexistente (404) y manejo global de errores. No hay middleware de validación de negocio.
 
 ## Endpoints y tabla de pruebas manuales
 
-Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `Content-Type: application/json`. P1, P2, L1, L2 y O1 corresponden a los ejemplos de abajo. Ejecutarlos con IDs libres.
+Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `Content-Type: application/json`. P1, P2, T1, T2, L1, L2 y O1 corresponden a los ejemplos de abajo. Ejecutarlos con IDs libres.
 
 | Método | Endpoint | Parámetros | Body | Respuesta esperada | Respuesta ante error |
 | --- | --- | --- | --- | --- | --- |
@@ -95,6 +97,11 @@ Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `
 | POST | /productores | Ninguno | P1 | 201, mensaje y productor | 400 datos inválidos o ID duplicado |
 | PUT | /productores/:id | ID de ruta | P2 | 200, mensaje y productor | 400 datos inválidos; 404 inexistente |
 | DELETE | /productores/:id | ID de ruta | No | 200, mensaje | 400 si posee lotes; 404 inexistente |
+| GET | /tecnicos | Ninguno | No | 200, arreglo de técnicos | 500, error interno |
+| GET | /tecnicos/:id | ID de ruta, ej. 13 | No | 200, técnico | 400 ID inválido; 404 inexistente |
+| POST | /tecnicos | Ninguno | T1 | 201, mensaje y técnico | 400 datos inválidos o ID duplicado |
+| PUT | /tecnicos/:id | ID de ruta | T2 | 200, mensaje y técnico | 400 datos inválidos; 404 inexistente |
+| DELETE | /tecnicos/:id | ID de ruta | No | 200, mensaje | 400 si posee observaciones; 404 inexistente |
 | GET | /lotes | alerta opcional | No | 200, arreglo de lotes | 400 alerta inválida |
 | GET | /lotes/:id | ID de ruta | No | 200, lote | 400 ID inválido; 404 inexistente |
 | POST | /lotes | Ninguno | L1 | 201, mensaje y lote | 400 datos, ID duplicado o relación inexistente |
@@ -107,12 +114,14 @@ Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `
 | GET | / | Ninguno | No | 302, redirección al listado web | 500, error interno |
 | GET | /web/lotes | Ninguno | No | 200, HTML del listado Pug | 500, error interno |
 | GET | /web/lotes/:id | ID del lote | No | 200, HTML del detalle Pug | 400 ID inválido; 404 lote inexistente |
+| GET | /web/tecnicos | Ninguno | No | 200, HTML del listado Pug | 500, error interno |
+| GET | /web/tecnicos/:id | ID del técnico | No | 200, HTML del detalle Pug | 400 ID inválido; 404 inexistente |
 
 Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación que acceda a archivos puede devolver 500 ante un error interno.
 
 ### Manejo de errores
 
-Las validaciones de negocio responden directamente desde los controllers con 400 o 404 y un mensaje específico. No pasan por un middleware de validación por ahora.
+Las validaciones de negocio responden directamente desde los controllers con 400 o 404 y un mensaje específico. No pasan por un middleware de validación.
 
 Después de las rutas, el middleware 404 responde JSON:
 
@@ -127,13 +136,13 @@ El middleware global utiliza `error.status || 500`. Registra `error.message` en 
 - Un body JSON mal formado devuelve 400 con `{"mensaje":"Solicitud inválida"}`.
 - Un error inesperado, como un archivo inexistente o JSON inválido en el almacenamiento, devuelve 500 con `{"mensaje":"Error interno del servidor"}`.
 - Si el error incluye otro estado HTTP, se conserva ese estado: el mensaje es `Solicitud inválida` para estados menores a 500 y `Error interno del servidor` para estados desde 500.
-- Para solicitudes cuya URL comienza con `/web/lotes`, el middleware global renderiza `error.pug` con el mismo estado y mensaje. Para la API responde JSON.
+- Para solicitudes cuya URL comienza con `/web`, el middleware global renderiza `error.pug` con el mismo estado y mensaje. Para la API responde JSON.
 
 Los archivos no se reparan ni reemplazan automáticamente.
 
 ### Vistas Pug
 
-`GET /` redirige a `/web/lotes`. El listado muestra ID, ubicación y hectáreas de cada lote, con enlaces a `/web/lotes/:id`. El detalle muestra el nombre del productor y del cultivo, la ubicación y las hectáreas. Las vistas reciben datos mediante `res.render()` y no contienen formularios de edición.
+`GET /` redirige a `/web/lotes`. El listado muestra ID, ubicación y hectáreas de cada lote, con enlaces a `/web/lotes/:id`. El detalle muestra el nombre del productor y del cultivo, la ubicación y las hectáreas. También están disponibles `/web/tecnicos` y `/web/tecnicos/:id`: el listado muestra ID y nombre con enlaces al detalle; el detalle muestra el ID y el nombre del técnico. Las vistas reciben datos mediante `res.render()` y no contienen formularios de edición. Las altas, modificaciones y bajas se realizan mediante los endpoints JSON.
 
 ### Ejemplos de solicitudes
 
@@ -151,6 +160,23 @@ P2 — PUT `/productores/4`:
 ```json
 {
   "nombre": "Productor actualizado"
+}
+```
+
+T1 — POST `/tecnicos`:
+
+```json
+{
+  "id": 13,
+  "nombre": "Técnico de demostración"
+}
+```
+
+T2 — PUT `/tecnicos/13`:
+
+```json
+{
+  "nombre": "Técnico actualizado"
 }
 ```
 
@@ -206,6 +232,18 @@ POST `/productores`, estado 201:
 }
 ```
 
+POST `/tecnicos`, estado 201:
+
+```json
+{
+  "mensaje": "Técnico creado",
+  "tecnico": {
+    "id": 13,
+    "nombre": "Técnico de demostración"
+  }
+}
+```
+
 POST `/lotes`, estado 201:
 
 ```json
@@ -239,7 +277,7 @@ POST `/observaciones`, estado 201:
 }
 ```
 
-GET por ID devuelve el objeto sin el envoltorio `mensaje`. GET de listado y las consultas devuelven arreglos; si no hay coincidencias devuelven `[]`. PUT responde con `mensaje` y el objeto actualizado. DELETE exitoso devuelve `{"mensaje":"Lote eliminado"}` o `{"mensaje":"Productor eliminado"}`.
+GET por ID devuelve el objeto sin el envoltorio `mensaje`. GET de listado y las consultas devuelven arreglos; si no hay coincidencias devuelven `[]`. PUT responde con `mensaje` y el objeto actualizado. DELETE exitoso devuelve `{"mensaje":"Lote eliminado"}` , `{"mensaje":"Productor eliminado"}` o `{"mensaje":"Técnico eliminado"}`.
 
 Ejemplos de error:
 
@@ -267,13 +305,21 @@ Ejemplos de error:
 
 400 al intentar eliminar un productor con lotes.
 
+Al intentar DELETE `/tecnicos/1`, estado 400:
+
+```json
+{
+  "mensaje": "No se puede eliminar el técnico porque posee observaciones registradas"
+}
+```
+
 ## Tres consultas implementadas
 
 1. GET `/lotes/1/observaciones`: devuelve todas las observaciones del lote 1. Primero comprueba que el lote exista.
 2. GET `/lotes?alerta=Crítico`: devuelve cada lote que tenga al menos una observación histórica con esa alerta, sin repetir lotes. No representa necesariamente la alerta más reciente. También acepta Normal y Atención.
 3. GET `/observaciones?tecnicoId=1`: devuelve las observaciones del técnico 1. Comprueba que el técnico exista.
 
-Para los filtros usar la pestaña Params de Postman/ThunderClient; la herramienta codifica las tildes de la URL. Las consultas utilizan req.query y los detalles e historial utilizan req.params.
+Para los filtros usar la pestaña Params de Postman/ThunderClient; la herramienta codifica las tildes de la URL. Las consultas utilizan `req.query` y los detalles e historial utilizan `req.params`. El parámetro debe escribirse exactamente `tecnicoId`, con I mayúscula: `tecnicoid` no activa el filtro.
 
 Con los datos incluidos, antes de agregar nuevas observaciones, el historial del lote 1 contiene las observaciones 1 y 4; el filtro por alerta `Crítico` devuelve el lote 3; y el filtro por técnico 1 devuelve las observaciones 1, 3 y 5. El lote 3 aparece en la consulta de alerta crítica aunque su observación posterior tenga nivel `Atención`, porque se consulta todo el historial.
 

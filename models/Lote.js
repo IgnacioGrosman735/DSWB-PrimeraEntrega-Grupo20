@@ -1,21 +1,35 @@
-class Lote {
-    constructor(id, hectareas, tipoCultivoId, productorId, ubicacion) {
-        this.id = id;
-        this.hectareas = hectareas;
-        this.tipoCultivoId = tipoCultivoId;
-        this.productorId = productorId;
-        this.ubicacion = ubicacion;
-    }
+const mongoose = require("mongoose");
 
-    esValido() {
-        return (
-            Number.isSafeInteger(this.id) && this.id > 0 &&
-            Number.isSafeInteger(this.tipoCultivoId) && this.tipoCultivoId > 0 &&
-            Number.isSafeInteger(this.productorId) && this.productorId > 0 &&
-            typeof this.ubicacion === "string" && this.ubicacion.trim() !== "" &&
-            typeof this.hectareas === "number" && Number.isFinite(this.hectareas) && this.hectareas > 0
-        );
+const esquema = new mongoose.Schema({
+    _id: {
+        type: Number,
+        required: true,
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    hectareas: {
+        type: Number,
+        required: true,
+        validate: valor => Number.isFinite(valor) && valor > 0
+    },
+    tipoCultivoId: {
+        type: Number,
+        required: true,
+        ref: "TipoCultivo",
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    productorId: {
+        type: Number,
+        required: true,
+        ref: "Productor",
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    ubicacion: {
+        type: String,
+        required: true,
+        validate: valor => valor.trim() !== ""
     }
-}
+}, {
+    versionKey: false
+});
 
-module.exports = Lote;
+module.exports = mongoose.model("Lote", esquema, "lotes");

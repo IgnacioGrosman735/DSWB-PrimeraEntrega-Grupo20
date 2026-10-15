@@ -1,5 +1,14 @@
 [
-  { "id": 1, "nombre": "Gallo" },
-  { "id": 2, "nombre": "El Colibrí" },
-  { "id": 3, "nombre": "Los Choclos Hermanos" }
+  {
+    "id": 1,
+    "nombre": "Gallo"
+  },
+  {
+    "id": 2,
+    "nombre": "El Colibrí"
+  },
+  {
+    "id": 3,
+    "nombre": "Los Choclos Hermanos"
+  }
 ]

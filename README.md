@@ -12,54 +12,134 @@ Actualmente administra productores, técnicos y lotes, registra observaciones y 
 | Lotes | CRUD e historial implementados | Administración mediante la API. |
 | Técnicos | CRUD implementado | Administración mediante la API. |
 | Observaciones | Registro y consulta implementados | Conservar el historial sin eliminación. |
-| Tipos de cultivo | Catálogo fijo en `data/tiposCultivo.json` | Mantener los tipos de cultivo que abarca el negocio, sin CRUD público. |
+| Tipos de cultivo | Catálogo fijo en MongoDB (`tiposCultivo`) | Se tienen los tipos de cultivo que abarca el negocio, sin CRUD público. |
 
 El catálogo de tipos de cultivo se define como fijo. Actualmente incluye Arroz, Soja y Maíz. Se evaluará luego si hace falta la implementación de CRUD.
 
 ## Tecnologías e instalación
 
-JavaScript, Node.js (20 o superior), NPM, Express, CommonJS, fs, path, archivos JSON y Pug. No se utiliza una base de datos externa.
+La aplicación utiliza JavaScript, Node.js, Express, CommonJS, MongoDB, Mongoose y Pug. La persistencia se realiza en MongoDB; los archivos JSON de `data/` contienen los datos de ejemplo para la carga inicial.
 
-Desde la carpeta del proyecto:
+Requisitos:
 
-```sh
+- Node.js 20 o superior y npm.
+- MongoDB Community Server instalado y en ejecución.
+
+### 1. Iniciar MongoDB local
+
+En Windows, MongoDB puede ejecutarse como servicio. Desde Servicios, iniciar **MongoDB Server (MongoDB)** y verificar su estado en PowerShell:
+
+```powershell
+Get-Service MongoDB
+```
+
+El estado debe ser `Running`. Si MongoDB se instaló sin servicio, iniciar `mongod` con una carpeta de datos y mantener esa terminal abierta:
+
+```powershell
+New-Item -ItemType Directory -Force ./tmp/mongodb-data
+mongod --dbpath ./tmp/mongodb-data --bind_ip 127.0.0.1 --port 27017
+```
+
+Si `mongod` no está en PATH, usar la ruta completa al ejecutable. El servicio de Windows administra su propia carpeta de datos y no necesita este segundo método. Para conservar la información entre reinicios, mantener la misma carpeta de datos.
+
+### 2. Instalar y configurar el proyecto
+
+Desde la carpeta del proyecto, instalar las dependencias:
+
+```powershell
 npm install
+```
+
+La configuración predeterminada permite conectarse a MongoDB local sin definir variables adicionales:
+
+| Variable | Valor predeterminado | Descripción |
+| --- | --- | --- |
+| `MONGODB_URI` | `mongodb://127.0.0.1:27017/agrotec` | Dirección de conexión y nombre de la base de datos. |
+| `PORT` | `3100` | Puerto HTTP de la aplicación. |
+
+Para utilizar otros valores, configurar las variables antes de ejecutar los comandos de importación o inicio. Ejemplo en PowerShell:
+
+```powershell
+$env:MONGODB_URI = "mongodb://127.0.0.1:27017/agrotec"
+$env:PORT = "3100"
+```
+
+Las variables configuradas así pertenecen a esa sesión de PowerShell. `.env.example` muestra las opciones disponibles; la aplicación no carga archivos `.env` automáticamente.
+
+### 3. Carga inicial y ejecución
+
+Para cargar los datos de ejemplo por primera vez, ejecutar con la API detenida y las cinco colecciones vacías:
+
+```powershell
+npm run importar
+```
+
+El importador valida los cinco JSON, sus identificadores y relaciones, e inserta 27 documentos. Cancela si alguna colección ya contiene datos y no sobrescribe información. Si falla durante la escritura, revisar si quedó una carga parcial antes de repetirlo.
+
+Una vez realizada la carga inicial, iniciar el servidor:
+
+```powershell
 npm start
 ```
 
-Servidor: http://localhost:3100. El puerto está definido como `3100` en `index.js`.
+La aplicación queda disponible en [http://localhost:3100](http://localhost:3100), salvo que se configure otro puerto. Para reiniciarla, detener el proceso con `Ctrl+C` y volver a ejecutar `npm start`. La importación no se repite al iniciar; los datos se conservan en MongoDB.
+
+El servidor espera la conexión a MongoDB antes de aceptar solicitudes. Si la conexión falla, muestra un mensaje en consola y termina con código de salida 1. Revisar que MongoDB esté activo y que `MONGODB_URI` sea correcta.
 
 | Comando | Acción |
 | --- | --- |
-| `npm install` | Instala Express y Pug, las dependencias declaradas en package.json. |
-| `npm start` | Ejecuta `node index.js`. |
+| `npm install` | Instala las dependencias del proyecto. |
+| `npm start` | Conecta a MongoDB e inicia Express. |
 | `npm run dev` | Ejecuta `node --watch index.js` y reinicia ante cambios en el código. |
+| `npm run importar` | Carga los datos de ejemplo en las cinco colecciones vacías. |
 
-No hay un script `test` ni pruebas automatizadas. Las pruebas de la entrega se realizan con Postman o ThunderClient.
+Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
 
 ## Estructura
 
-- `index.js`: configuración de Express, Pug, logger, rutas y errores básicos.
-- `models/`: Productor, Tecnico y Lote utilizan `esValido()`; Observacion utiliza `esValida()` y el método estático `alertaValida()`. TipoCultivo tiene constructor y propiedades, sin métodos de validación propios.
-- `controllers/`: productores, técnicos, lotes y observaciones; procesan requests, validan relaciones y leen/escriben JSON.
+- `index.js`: configuración de Express y Pug, middleware, rutas y arranque del servidor.
+- `config/database.js`: conexión a MongoDB mediante Mongoose.
+- `models/`: esquemas de productores, lotes, técnicos, tipos de cultivo y observaciones, con validaciones y referencias.
+- `controllers/`: procesamiento de solicitudes, reglas de negocio, consultas a MongoDB y renderizado de vistas.
 - `routes/`: rutas de productores, técnicos, lotes, observaciones y vistas.
-- `middleware/logger.js`: registra fecha/hora, método y URL, y llama a next(). No valida datos en esta instancia.
-- `views/`: listados y detalles de lotes y técnicos (`lotes.pug`, `detalleLote.pug`, `tecnicos.pug`, `detalleTecnico.pug`) y `error.pug`, renderizados mediante `res.render()`.
-- `data/`: productores.json, lotes.json, tecnicos.json, tiposCultivo.json y observaciones.json.
+- `middleware/logger.js`: registro de fecha, método y URL de las solicitudes.
+- `views/`: plantillas Pug para listados y detalles de lotes y técnicos, y página de error.
+- `data/`: archivos JSON con datos de ejemplo para importar.
+- `scripts/`: carga inicial de datos de ejemplo.
 
-Los controladores utilizan `fs.readFileSync()`, `JSON.parse()`, `fs.writeFileSync()` y `JSON.stringify()` para la persistencia. Los archivos JSON deben existir antes de iniciar las operaciones; no hay creación automática de archivos ni recuperación de datos.
+Las rutas delegan las operaciones en los controladores, que acceden a los modelos Mongoose con `async/await`. La API y las vistas utilizan MongoDB; los archivos JSON solo se leen durante la importación.
 
 ## Recursos y datos iniciales
 
+### Colecciones e identificadores
+
+La base utiliza las siguientes colecciones, con nombres correspondientes a los archivos de carga inicial:
+
+| JSON original | Colección | Campos almacenados |
+| --- | --- | --- |
+| productores.json | productores | _id, nombre |
+| lotes.json | lotes | _id, hectareas, tipoCultivoId, productorId, ubicacion |
+| tecnicos.json | tecnicos | _id, nombre |
+| tiposCultivo.json | tiposCultivo | _id, nombre |
+| observaciones.json | observaciones | _id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta |
+
+`_id` es un entero positivo seguro y el único identificador almacenado en cada documento. Su índice garantiza la unicidad dentro de la colección. Durante la importación, el campo `id` de los JSON se guarda como `_id`.
+
+La API recibe y devuelve `_id`, la clave de MongoDB. Por ejemplo, `GET /productores/1` devuelve `{"_id":1,"nombre":"Gallo"}`. Las rutas conservan el parámetro `:id` numérico; los campos relacionados siguen llamándose `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId`.
+
+Los campos `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId` guardan referencias numéricas al `_id` del recurso correspondiente. Los controladores comprueban la existencia de esos recursos antes de guardar y sus dependencias antes de eliminar.
+
+### Campos de la API y datos de ejemplo
+
 | Recurso | Campos |
 | --- | --- |
-| Productor | id, nombre |
-| Lote | id, hectareas, tipoCultivoId, productorId, ubicacion |
-| Técnico | id, nombre |
-| Tipo de cultivo | id, nombre |
-| Observación | id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta |
+| Productor | _id, nombre |
+| Lote | _id, hectareas, tipoCultivoId, productorId, ubicacion |
+| Técnico | _id, nombre |
+| Tipo de cultivo | _id, nombre |
+| Observación | _id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta |
 
-Los datos actualmente incluidos en los archivos JSON son:
+La carga inicial incluye:
 
 - Tres productores: 1 = Gallo, 2 = El Colibrí y 3 = Los Choclos Hermanos.
 - Tres lotes: 1 = Córdoba, 250 hectáreas; 2 = Rosario, 100 hectáreas; 3 = Santa Fe, 50 hectáreas. Cada uno referencia al productor y tipo de cultivo con su mismo número de ID.
@@ -67,7 +147,7 @@ Los datos actualmente incluidos en los archivos JSON son:
 - Catálogo fijo de cultivos: 1 = Arroz, 2 = Soja y 3 = Maíz.
 - Seis observaciones con IDs del 1 al 6, fechadas entre el 10 y el 16 de septiembre de 2026. Cada lote tiene dos observaciones.
 
-Las pruebas de creación modifican los archivos JSON. Los ejemplos usan IDs libres respecto de esta carga inicial: 4 para productor y lote, 13 para técnico y 7 para observación. Si ya se ejecutaron, elegir otros IDs libres y adaptar las solicitudes siguientes.
+Las solicitudes de creación modifican MongoDB. Los ejemplos usan IDs libres respecto de la carga inicial: 4 para productor y lote, 13 para técnico y 7 para observación. Si esos IDs ya existen, elegir otros y adaptar las solicitudes siguientes.
 
 El cultivo del lote y el cultivo registrado en una observación usan IDs. Una observación conserva el cultivo registrado en esa fecha aunque el lote se actualice después.
 
@@ -81,7 +161,7 @@ El cultivo del lote y el cultivo registrado en una observación usan IDs. Una ob
 - No se puede eliminar un productor con lotes asociados.
 - No se puede eliminar un técnico con observaciones registradas, para conservar las relaciones del historial.
 - No se puede eliminar un lote con observaciones: así se preservan el historial y sus referencias.
-- El cliente envía el `id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. No se modifican los IDs del recurso mediante PUT.
+- El cliente envía el `_id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. No se modifican los IDs del recurso mediante PUT.
 - Las hectáreas deben ser numéricas, finitas y mayores a cero. Nombre, ubicación, estado del cultivo y texto de observaciones deben ser textos no vacíos, según el recurso.
 - PUT de lote requiere al menos uno de estos campos: `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`. Conserva los campos omitidos y rechaza valores inválidos, incluido `null`. PUT de productor y de técnico requieren `nombre`.
 - Las validaciones se realizan en models/controllers. Se utilizan express.json(), el logger y los middleware de ruta inexistente (404) y manejo global de errores. No hay middleware de validación de negocio.
@@ -117,7 +197,7 @@ Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `
 | GET | /web/tecnicos | Ninguno | No | 200, HTML del listado Pug | 500, error interno |
 | GET | /web/tecnicos/:id | ID del técnico | No | 200, HTML del detalle Pug | 400 ID inválido; 404 inexistente |
 
-Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación que acceda a archivos puede devolver 500 ante un error interno.
+Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación que consulte MongoDB puede devolver 500 ante un error interno.
 
 ### Manejo de errores
 
@@ -131,14 +211,14 @@ Después de las rutas, el middleware 404 responde JSON:
 }
 ```
 
-El middleware global utiliza `error.status || 500`. Registra `error.message` en la consola y responde con un mensaje genérico, sin exponer detalles internos:
+El middleware global conserva error.status cuando corresponde y trata ValidationError, CastError y código 11000 de duplicado como 400. Registra el nombre del error en consola sin exponer detalles internos.
 
-- Un body JSON mal formado devuelve 400 con `{"mensaje":"Solicitud inválida"}`.
-- Un error inesperado, como un archivo inexistente o JSON inválido en el almacenamiento, devuelve 500 con `{"mensaje":"Error interno del servidor"}`.
-- Si el error incluye otro estado HTTP, se conserva ese estado: el mensaje es `Solicitud inválida` para estados menores a 500 y `Error interno del servidor` para estados desde 500.
-- Para solicitudes cuya URL comienza con `/web`, el middleware global renderiza `error.pug` con el mismo estado y mensaje. Para la API responde JSON.
+- JSON mal formado y validaciones del esquema: 400, Solicitud inválida.
+- ID duplicado detectado por MongoDB: 400, Ya existe un registro con ese ID.
+- Error inesperado de consulta: 500, Error interno del servidor.
+- Para /web se renderiza error.pug con el mismo estado; para la API se responde JSON.
 
-Los archivos no se reparan ni reemplazan automáticamente.
+Las validaciones de negocio devuelven mensajes específicos con estados 400 o 404, según corresponda.
 
 ### Vistas Pug
 
@@ -150,7 +230,7 @@ P1 — POST `/productores`:
 
 ```json
 {
-  "id": 4,
+  "_id": 4,
   "nombre": "Productor de demostración"
 }
 ```
@@ -167,7 +247,7 @@ T1 — POST `/tecnicos`:
 
 ```json
 {
-  "id": 13,
+  "_id": 13,
   "nombre": "Técnico de demostración"
 }
 ```
@@ -184,7 +264,7 @@ L1 — POST `/lotes` (crear primero el productor 4):
 
 ```json
 {
-  "id": 4,
+  "_id": 4,
   "hectareas": 120,
   "tipoCultivoId": 2,
   "productorId": 4,
@@ -207,7 +287,7 @@ O1 — POST `/observaciones` (utiliza el lote inicial 1 y el ID libre 7):
 
 ```json
 {
-  "id": 7,
+  "_id": 7,
   "loteId": 1,
   "tecnicoId": 1,
   "fecha": "2026-09-17",
@@ -226,7 +306,7 @@ POST `/productores`, estado 201:
 {
   "mensaje": "Productor creado",
   "productor": {
-    "id": 4,
+    "_id": 4,
     "nombre": "Productor de demostración"
   }
 }
@@ -238,7 +318,7 @@ POST `/tecnicos`, estado 201:
 {
   "mensaje": "Técnico creado",
   "tecnico": {
-    "id": 13,
+    "_id": 13,
     "nombre": "Técnico de demostración"
   }
 }
@@ -250,7 +330,7 @@ POST `/lotes`, estado 201:
 {
   "mensaje": "Lote creado",
   "lote": {
-    "id": 4,
+    "_id": 4,
     "hectareas": 120,
     "tipoCultivoId": 2,
     "productorId": 4,
@@ -265,7 +345,7 @@ POST `/observaciones`, estado 201:
 {
   "mensaje": "Observación registrada",
   "observacion": {
-    "id": 7,
+    "_id": 7,
     "loteId": 1,
     "tecnicoId": 1,
     "fecha": "2026-09-17",

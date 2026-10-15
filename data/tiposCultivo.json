@@ -1,5 +1,14 @@
 [
-  { "id": 1, "nombre": "Arroz" },
-  { "id": 2, "nombre": "Soja" },
-  { "id": 3, "nombre": "Maíz" }
+  {
+    "id": 1,
+    "nombre": "Arroz"
+  },
+  {
+    "id": 2,
+    "nombre": "Soja"
+  },
+  {
+    "id": 3,
+    "nombre": "Maíz"
+  }
 ]

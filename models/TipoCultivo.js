@@ -1,8 +1,18 @@
-class TipoCultivo {
-    constructor(id, nombre) {
-        this.id = id;
-        this.nombre = nombre;
-    }
-}
+const mongoose = require("mongoose");
 
-module.exports = TipoCultivo;
+const esquema = new mongoose.Schema({
+    _id: {
+        type: Number,
+        required: true,
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    nombre: {
+        type: String,
+        required: true,
+        validate: valor => valor.trim() !== ""
+    }
+}, {
+    versionKey: false
+});
+
+module.exports = mongoose.model("TipoCultivo", esquema, "tiposCultivo");

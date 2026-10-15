@@ -1,13 +1,18 @@
-class Productor {
-    constructor(id, nombre) {
-        this.id = id;
-        this.nombre = nombre;
-    }
+const mongoose = require("mongoose");
 
-    esValido() {
-        return Number.isSafeInteger(this.id) && this.id > 0 &&
-            typeof this.nombre === "string" && this.nombre.trim() !== "";
+const esquema = new mongoose.Schema({
+    _id: {
+        type: Number,
+        required: true,
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    nombre: {
+        type: String,
+        required: true,
+        validate: valor => valor.trim() !== ""
     }
-}
+}, {
+    versionKey: false
+});
 
-module.exports = Productor;
+module.exports = mongoose.model("Productor", esquema, "productores");

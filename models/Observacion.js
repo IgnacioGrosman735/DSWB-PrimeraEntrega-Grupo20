@@ -1,38 +1,53 @@
-class Observacion {
-    constructor(id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta) {
-        this.id = id;
-        this.loteId = loteId;
-        this.tecnicoId = tecnicoId;
-        this.fecha = fecha;
-        this.tipoCultivoId = tipoCultivoId;
-        this.estadoCultivo = estadoCultivo;
-        this.observaciones = observaciones;
-        this.nivelAlerta = nivelAlerta;
+const mongoose = require("mongoose");
+
+const esquema = new mongoose.Schema({
+    _id: {
+        type: Number,
+        required: true,
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    loteId: {
+        type: Number,
+        required: true,
+        ref: "Lote",
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    tecnicoId: {
+        type: Number,
+        required: true,
+        ref: "Tecnico",
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    fecha: {
+        type: String,
+        required: true,
+        validate: valor => /^\d{4}-\d{2}-\d{2}$/.test(valor) &&
+            !Number.isNaN(new Date(valor).getTime()) &&
+            new Date(valor).toISOString().slice(0, 10) === valor
+    },
+    tipoCultivoId: {
+        type: Number,
+        required: true,
+        ref: "TipoCultivo",
+        validate: valor => Number.isSafeInteger(valor) && valor > 0
+    },
+    estadoCultivo: {
+        type: String,
+        required: true,
+        validate: valor => valor.trim() !== ""
+    },
+    observaciones: {
+        type: String,
+        required: true,
+        validate: valor => valor.trim() !== ""
+    },
+    nivelAlerta: {
+        type: String,
+        required: true,
+        enum: ["Normal", "Atención", "Crítico"]
     }
+}, {
+    versionKey: false
+});
 
-    static alertaValida(nivel) {
-        return ["Normal", "Atención", "Crítico"].includes(nivel);
-    }
-
-    esValida() {
-        if (typeof this.fecha !== "string") {
-            return false;
-        }
-
-        const fecha = new Date(this.fecha);
-
-        return (
-            Number.isSafeInteger(this.id) && this.id > 0 &&
-            Number.isSafeInteger(this.loteId) && this.loteId > 0 &&
-            Number.isSafeInteger(this.tecnicoId) && this.tecnicoId > 0 &&
-            Number.isSafeInteger(this.tipoCultivoId) && this.tipoCultivoId > 0 &&
-            /^\d{4}-\d{2}-\d{2}$/.test(this.fecha) &&
-            !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === this.fecha &&
-            typeof this.estadoCultivo === "string" && this.estadoCultivo.trim() !== "" &&
-            typeof this.observaciones === "string" && this.observaciones.trim() !== "" &&
-            Observacion.alertaValida(this.nivelAlerta)
-        );
-    }
-}
-
-module.exports = Observacion;
+module.exports = mongoose.model("Observacion", esquema, "observaciones");

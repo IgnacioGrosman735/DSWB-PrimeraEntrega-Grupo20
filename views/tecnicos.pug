@@ -10,7 +10,7 @@ html(lang="es")
       ul
         each tecnico in tecnicos
           li
-            a(href="/web/tecnicos/" + tecnico.id) Técnico #{tecnico.id} — #{tecnico.nombre}
+            a(href="/web/tecnicos/" + tecnico._id) Técnico #{tecnico._id} — #{tecnico.nombre}
     else
       p No hay técnicos registrados.
     a(href="/tecnicos") Ver técnicos en JSON

@@ -10,7 +10,7 @@ html(lang="es")
       ul
         each lote in lotes
           li
-            a(href="/web/lotes/" + lote.id) Lote #{lote.id} — #{lote.ubicacion} (#{lote.hectareas} ha)
+            a(href="/web/lotes/" + lote._id) Lote #{lote._id} — #{lote.ubicacion} (#{lote.hectareas} ha)
     else
       p No hay lotes registrados.
     a(href="/lotes") Ver lotes en JSON

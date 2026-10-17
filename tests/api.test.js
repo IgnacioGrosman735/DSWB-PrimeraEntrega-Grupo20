@@ -358,5 +358,26 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         assert.deepEqual(await Observacion.find().lean(), observacionesAnteriores);
     });
     // Notas - Andrea | Fin | Protección del contenido y persistencia del historial
+
+    // Notas - Andrea | Inicio | Eliminaciones relacionadas sin pérdida de datos
+    await t.test("los DELETE bloqueados conservan todos los recursos relacionados", async () => {
+        const rutas = ["/productores", "/tecnicos", "/lotes", "/observaciones"];
+        const anteriores = new Map();
+        for (const ruta of rutas) {
+            anteriores.set(ruta, await solicitud("GET", ruta, undefined, 200));
+        }
+        const bloqueos = [
+            ["/productores/1", "No se puede eliminar el productor porque posee lotes asociados"],
+            ["/tecnicos/1", "No se puede eliminar el técnico porque posee observaciones registradas"],
+            ["/lotes/1", "No se puede eliminar el lote porque posee observaciones en su historial"]
+        ];
+        for (const [ruta, mensaje] of bloqueos) {
+            assert.deepEqual(await solicitud("DELETE", ruta, undefined, 400), { mensaje });
+            for (const recurso of rutas) {
+                assert.deepEqual(await solicitud("GET", recurso, undefined, 200), anteriores.get(recurso));
+            }
+        }
+    });
+    // Notas - Andrea | Fin | Eliminaciones relacionadas sin pérdida de datos
 });
 // Notas - Andrea | Fin | Pruebas de regresión de la API

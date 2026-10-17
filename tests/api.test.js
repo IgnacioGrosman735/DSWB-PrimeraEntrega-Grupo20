@@ -284,5 +284,33 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         }
     });
     // Notas - Andrea | Fin | Campos obligatorios, tipos y valores de entrada
+
+    // Notas - Andrea | Inicio | Integridad de relaciones y cultivo histórico
+    await t.test("las referencias inexistentes no escriben y el cultivo histórico se conserva", async () => {
+        const lotesAnteriores = await solicitud("GET", "/lotes", undefined, 200);
+        const loteAnterior = await solicitud("GET", "/lotes/1", undefined, 200);
+        for (const cambios of [{ productorId: 999 }, { tipoCultivoId: 999 }]) {
+            await solicitud("POST", "/lotes", { ...loteValido, _id: 201, ...cambios }, 400);
+            await solicitud("GET", "/lotes/201", undefined, 404);
+            await solicitud("PUT", "/lotes/1", cambios, 400);
+            assert.deepEqual(await solicitud("GET", "/lotes/1", undefined, 200), loteAnterior);
+        }
+        assert.deepEqual(await solicitud("GET", "/lotes", undefined, 200), lotesAnteriores);
+
+        const historialAnterior = await solicitud("GET", "/lotes/1/observaciones", undefined, 200);
+        const observacionesAnteriores = await solicitud("GET", "/observaciones", undefined, 200);
+        for (const campo of ["loteId", "tecnicoId", "tipoCultivoId"]) {
+            await solicitud("POST", "/observaciones", { ...observacionValida, _id: 201, [campo]: 999 }, 400);
+            await solicitud("GET", "/observaciones/201", undefined, 404);
+        }
+        assert.deepEqual(await solicitud("GET", "/observaciones", undefined, 200), observacionesAnteriores);
+
+        await TipoCultivo.create({ _id: 2, nombre: "Soja de prueba" });
+        const actualizado = await solicitud("PUT", "/lotes/1", { tipoCultivoId: 2 }, 200);
+        assert.equal(actualizado.lote.tipoCultivoId, 2);
+        assert.deepEqual(await solicitud("GET", "/lotes/1/observaciones", undefined, 200), historialAnterior);
+        assert.ok(historialAnterior.every(observacion => observacion.tipoCultivoId === 1));
+    });
+    // Notas - Andrea | Fin | Integridad de relaciones y cultivo histórico
 });
 // Notas - Andrea | Fin | Pruebas de regresión de la API

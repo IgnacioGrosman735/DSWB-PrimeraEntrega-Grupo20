@@ -3,17 +3,20 @@ const TipoCultivo = require("../models/TipoCultivo");
 const Lote = require("../models/Lote");
 const Observacion = require("../models/Observacion");
 
-// Notas - Andrea | Inicio | Validaciones de cuerpo conservadas
-const datosValidos = (datos) => {
-    return (
-        Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        Number.isSafeInteger(datos.tipoCultivoId) && datos.tipoCultivoId > 0 &&
-        Number.isSafeInteger(datos.productorId) && datos.productorId > 0 &&
-        typeof datos.ubicacion === "string" && datos.ubicacion.trim() !== "" &&
-        typeof datos.hectareas === "number" && Number.isFinite(datos.hectareas) && datos.hectareas > 0
-    );
+// Notas - Andrea | Inicio | Carga del lote antes de validar la actualización
+const cargarLote = async (req, res, next) => {
+    try {
+        const lote = await Lote.findById(Number(req.params.id));
+        if (!lote) {
+            return res.status(404).json({ mensaje: "Lote no encontrado" });
+        }
+        res.locals.lote = lote;
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
-// Notas - Andrea | Fin | Validaciones de cuerpo conservadas
+// Notas - Andrea | Fin | Carga del lote antes de validar la actualización
 
 const obtenerLotes = async (req, res, next) => {
     try {
@@ -54,15 +57,9 @@ const obtenerLotePorId = async (req, res, next) => {
 
 const crearLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | Creación con cuerpo validado por middleware
         const { _id: id, hectareas, tipoCultivoId, productorId, ubicacion } = req.body || {};
-
-        const nuevoLote = { _id: id, hectareas, tipoCultivoId, productorId, ubicacion };
-
-        if (!datosValidos(nuevoLote)) {
-            return res.status(400).json({
-                mensaje: "Se requieren IDs enteros positivos, hectáreas numéricas mayores que cero y ubicación no vacía"
-            });
-        }
+        // Notas - Andrea | Fin | Creación con cuerpo validado por middleware
         if (await Lote.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un lote con ese ID" });
         }
@@ -86,35 +83,10 @@ const crearLote = async (req, res, next) => {
 
 const actualizarLote = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
-        const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
-
-        const lote = await Lote.findById(id);
-
-        if (!lote) {
-            return res.status(404).json({
-                mensaje: "Lote no encontrado"
-            });
-        }
-
-        const datos = req.body;
-        if (!datos || Array.isArray(datos) || typeof datos !== "object" ||
-            !["hectareas", "tipoCultivoId", "productorId", "ubicacion"].some(campo => datos[campo] !== undefined) ||
-            (datos._id !== undefined && datos._id !== id)) {
-            return res.status(400).json({ mensaje: "Envíe campos del lote para actualizar; el ID no se puede cambiar" });
-        }
-
-        const actualizado = {
-            _id: id,
-            hectareas: datos.hectareas !== undefined ? datos.hectareas : lote.hectareas,
-            tipoCultivoId: datos.tipoCultivoId !== undefined ? datos.tipoCultivoId : lote.tipoCultivoId,
-            productorId: datos.productorId !== undefined ? datos.productorId : lote.productorId,
-            ubicacion: datos.ubicacion !== undefined ? datos.ubicacion : lote.ubicacion
-        };
-        if (!datosValidos(actualizado)) {
-            return res.status(400).json({ mensaje: "Los datos del lote son inválidos" });
-        }
+        // Notas - Andrea | Inicio | Actualización parcial con lote cargado y datos validados
+        const lote = res.locals.lote;
+        const actualizado = res.locals.loteActualizado;
+        // Notas - Andrea | Fin | Actualización parcial con lote cargado y datos validados
         if (!await Productor.findById(actualizado.productorId)) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
@@ -204,6 +176,9 @@ const obtenerHistorial = async (req, res, next) => {
 module.exports = {
     obtenerLotes,
     obtenerLotePorId,
+    // Notas - Andrea | Inicio | Carga de lote disponible para las rutas de actualización
+    cargarLote,
+    // Notas - Andrea | Fin | Carga de lote disponible para las rutas de actualización
     crearLote,
     actualizarLote,
     eliminarLote,

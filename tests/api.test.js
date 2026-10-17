@@ -195,8 +195,10 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
             assert.match(await solicitud("GET", ruta, undefined, 200, true), /<html/);
         }
         for (const recurso of ["lotes", "tecnicos"]) {
-            await solicitud("GET", `/web/${recurso}/abc`, undefined, 400, true);
-            await solicitud("GET", `/web/${recurso}/999`, undefined, 404, true);
+            for (const prefijo of ["/web", "/WEB"]) {
+                await solicitud("GET", `${prefijo}/${recurso}/abc`, undefined, 400, true);
+                await solicitud("GET", `${prefijo}/${recurso}/999`, undefined, 404, true);
+            }
         }
         assert.equal((await solicitud("GET", "/ruta-inexistente", undefined, 404)).mensaje, "Ruta no encontrada");
     });

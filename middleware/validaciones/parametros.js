@@ -4,7 +4,7 @@ const { idValido, alertaValida } = require("./comunes");
 const validarId = (req, res, next) => {
     if (!idValido(Number(req.params.id))) {
         const error = { mensaje: "El ID debe ser un entero positivo" };
-        if (req.baseUrl === "/web") {
+        if (req.baseUrl.toLowerCase() === "/web") {
             return res.status(400).render("error", error);
         }
         return res.status(400).json(error);

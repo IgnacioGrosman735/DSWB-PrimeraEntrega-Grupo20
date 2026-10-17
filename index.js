@@ -64,4 +64,10 @@ const iniciar = async () => {
     }
 };
 
-iniciar();
+// Notas - Andrea | Inicio | Exportar la aplicación para pruebas sin iniciar el servidor
+if (require.main === module) {
+    iniciar();
+}
+
+module.exports = app;
+// Notas - Andrea | Fin | Exportar la aplicación para pruebas sin iniciar el servidor

@@ -3,27 +3,9 @@ const TipoCultivo = require("../models/TipoCultivo");
 const Lote = require("../models/Lote");
 const Observacion = require("../models/Observacion");
 
-const alertaValida = nivel => ["Normal", "Atención", "Crítico"].includes(nivel);
-
-const datosValidos = (datos) => {
-    if (typeof datos.fecha !== "string") {
-        return false;
-    }
-
-    const fecha = new Date(datos.fecha);
-
-    return (
-        Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        Number.isSafeInteger(datos.loteId) && datos.loteId > 0 &&
-        Number.isSafeInteger(datos.tecnicoId) && datos.tecnicoId > 0 &&
-        Number.isSafeInteger(datos.tipoCultivoId) && datos.tipoCultivoId > 0 &&
-        /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) &&
-        !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === datos.fecha &&
-        typeof datos.estadoCultivo === "string" && datos.estadoCultivo.trim() !== "" &&
-        typeof datos.observaciones === "string" && datos.observaciones.trim() !== "" &&
-        alertaValida(datos.nivelAlerta)
-    );
-};
+// Notas - Andrea | Inicio | Validaciones de entrada de observaciones trasladadas a middleware
+// middleware/validaciones/observaciones.js comprueba IDs, fecha, textos y nivel de alerta.
+// Notas - Andrea | Fin | Validaciones de entrada de observaciones trasladadas a middleware
 
 const obtenerObservaciones = async (req, res, next) => {
     try {
@@ -59,16 +41,10 @@ const obtenerObservacionPorId = async (req, res, next) => {
 
 const crearObservacion = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | Crear observaciones con entrada validada por middleware
         const { _id: id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta } = req.body || {};
-        if (!alertaValida(nivelAlerta)) {
-            return res.status(400).json({ mensaje: "El nivel de alerta debe ser Normal, Atención o Crítico" });
-        }
-        const observacion = { _id: id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta };
-        if (!datosValidos(observacion)) {
-            return res.status(400).json({
-                mensaje: "Se requieren IDs enteros positivos, fecha válida YYYY-MM-DD, estado del cultivo y texto de observaciones no vacíos"
-            });
-        }
+        // Las comprobaciones de duplicados y relaciones permanecen en el controlador.
+        // Notas - Andrea | Fin | Crear observaciones con entrada validada por middleware
         if (await Observacion.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe una observación con ese ID" });
         }

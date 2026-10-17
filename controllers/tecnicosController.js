@@ -16,10 +16,9 @@ const obtenerTecnicos = async (req, res, next) => {
 
 const obtenerTecnicoPorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
@@ -49,10 +48,9 @@ const crearTecnico = async (req, res, next) => {
 
 const actualizarTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
@@ -72,10 +70,9 @@ const actualizarTecnico = async (req, res, next) => {
 
 const eliminarTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         if (!await Tecnico.findById(id)) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
         }
@@ -99,10 +96,9 @@ const mostrarTecnicos = async (req, res, next) => {
 
 const mostrarTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).render("error", { mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).render("error", { mensaje: "El técnico no existe" });

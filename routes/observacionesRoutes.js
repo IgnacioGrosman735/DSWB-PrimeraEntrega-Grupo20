@@ -7,8 +7,12 @@ const {
 
 const router = express.Router();
 
-router.get("/", obtenerObservaciones);
-router.get("/:id", obtenerObservacionPorId);
+// Notas - Andrea | Inicio | Validación de IDs y filtro por técnico en rutas de observaciones
+const { validarId, validarTecnicoId } = require("../middleware/validaciones/parametros");
+
+router.get("/", validarTecnicoId, obtenerObservaciones);
+router.get("/:id", validarId, obtenerObservacionPorId);
 router.post("/", crearObservacion);
+// Notas - Andrea | Fin | Validación de IDs y filtro por técnico en rutas de observaciones
 
 module.exports = router;

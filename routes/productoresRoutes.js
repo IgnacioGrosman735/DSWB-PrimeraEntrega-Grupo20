@@ -9,10 +9,14 @@ const {
 
 const router = express.Router();
 
+// Notas - Andrea | Inicio | Validación de IDs en rutas de productores
+const { validarId } = require("../middleware/validaciones/parametros");
+
 router.get("/", obtenerProductores);
-router.get("/:id", obtenerProductorPorId);
+router.get("/:id", validarId, obtenerProductorPorId);
 router.post("/", crearProductor);
-router.put("/:id", actualizarProductor);
-router.delete("/:id", eliminarProductor);
+router.put("/:id", validarId, actualizarProductor);
+router.delete("/:id", validarId, eliminarProductor);
+// Notas - Andrea | Fin | Validación de IDs en rutas de productores
 
 module.exports = router;

@@ -3,8 +3,7 @@ const TipoCultivo = require("../models/TipoCultivo");
 const Lote = require("../models/Lote");
 const Observacion = require("../models/Observacion");
 
-const alertaValida = nivel => ["Normal", "Atención", "Crítico"].includes(nivel);
-
+// Notas - Andrea | Inicio | Validaciones de cuerpo conservadas
 const datosValidos = (datos) => {
     return (
         Number.isSafeInteger(datos._id) && datos._id > 0 &&
@@ -14,13 +13,14 @@ const datosValidos = (datos) => {
         typeof datos.hectareas === "number" && Number.isFinite(datos.hectareas) && datos.hectareas > 0
     );
 };
+// Notas - Andrea | Fin | Validaciones de cuerpo conservadas
 
 const obtenerLotes = async (req, res, next) => {
     try {
         if (req.query.alerta !== undefined) {
-            if (!alertaValida(req.query.alerta)) {
-                return res.status(400).json({ mensaje: "El nivel de alerta debe ser Normal, Atención o Crítico" });
-            }
+            // Notas - Andrea | Inicio | Filtro de alerta validado por middleware
+            // El filtro ya cumple los niveles admitidos antes de consultar el historial.
+            // Notas - Andrea | Fin | Filtro de alerta validado por middleware
             // Se considera todo el historial, sin repetir lotes.
             const observaciones = await Observacion.find({ nivelAlerta: req.query.alerta });
             const ids = observaciones.map(observacion => observacion.loteId);
@@ -34,10 +34,9 @@ const obtenerLotes = async (req, res, next) => {
 
 const obtenerLotePorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
 
         const lote = await Lote.findById(id);
 
@@ -87,10 +86,9 @@ const crearLote = async (req, res, next) => {
 
 const actualizarLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
 
         const lote = await Lote.findById(id);
 
@@ -138,10 +136,9 @@ const actualizarLote = async (req, res, next) => {
 
 const eliminarLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
 
         if (!await Lote.findById(id)) {
             return res.status(404).json({
@@ -175,10 +172,9 @@ const mostrarLotes = async (req, res, next) => {
 
 const mostrarLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).render("error", { mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const datos = await Lote.findById(id);
         if (!datos) {
             return res.status(404).render("error", { mensaje: "Lote no encontrado" });
@@ -193,10 +189,9 @@ const mostrarLote = async (req, res, next) => {
 
 const obtenerHistorial = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         if (!await Lote.findById(id)) {
             return res.status(404).json({ mensaje: "Lote no encontrado" });
         }

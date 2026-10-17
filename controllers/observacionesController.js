@@ -28,10 +28,9 @@ const datosValidos = (datos) => {
 const obtenerObservaciones = async (req, res, next) => {
     try {
         if (req.query.tecnicoId !== undefined) {
+            // Notas - Andrea | Inicio | Filtro de técnico validado por middleware
             const id = Number(req.query.tecnicoId);
-            if (typeof req.query.tecnicoId !== "string" || !Number.isSafeInteger(id) || id <= 0) {
-                return res.status(400).json({ mensaje: "tecnicoId debe ser un entero positivo" });
-            }
+            // Notas - Andrea | Fin | Filtro de técnico validado por middleware
             if (!await Tecnico.findById(id)) {
                 return res.status(404).json({ mensaje: "El técnico no existe" });
             }
@@ -45,10 +44,9 @@ const obtenerObservaciones = async (req, res, next) => {
 
 const obtenerObservacionPorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const observacion = await Observacion.findById(id);
         if (!observacion) {
             return res.status(404).json({ mensaje: "La observación no existe" });

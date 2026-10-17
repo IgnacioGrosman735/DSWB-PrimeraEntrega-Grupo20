@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+// Notas - Andrea | Inicio | Incorporar catálogo único de niveles de alerta
+const nivelesAlerta = require("../config/nivelesAlerta");
+// Notas - Andrea | Fin | Incorporar catálogo único de niveles de alerta
 
 const esquema = new mongoose.Schema({
     _id: {
@@ -41,11 +44,13 @@ const esquema = new mongoose.Schema({
         required: true,
         validate: valor => valor.trim() !== ""
     },
+    // Notas - Andrea | Inicio | Enum de observaciones con catálogo único de alertas
     nivelAlerta: {
         type: String,
         required: true,
-        enum: ["Normal", "Atención", "Crítico"]
+        enum: nivelesAlerta
     }
+    // Notas - Andrea | Fin | Enum de observaciones con catálogo único de alertas
 }, {
     versionKey: false
 });

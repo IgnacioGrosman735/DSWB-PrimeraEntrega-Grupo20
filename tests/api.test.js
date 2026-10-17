@@ -312,5 +312,28 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         assert.ok(historialAnterior.every(observacion => observacion.tipoCultivoId === 1));
     });
     // Notas - Andrea | Fin | Integridad de relaciones y cultivo histórico
+
+    // Notas - Andrea | Inicio | Niveles de alerta permitidos en API y modelo
+    await t.test("API y modelo conservan exactamente los tres niveles de alerta", async () => {
+        for (const [indice, nivelAlerta] of ["Normal", "Atención", "Crítico"].entries()) {
+            const datos = { ...observacionValida, _id: 301 + indice, nivelAlerta };
+            assert.equal(new Observacion(datos).validateSync(), undefined);
+            const creado = await solicitud("POST", "/observaciones", datos, 201);
+            assert.equal(creado.observacion.nivelAlerta, nivelAlerta);
+            const lotes = await solicitud("GET", `/lotes?alerta=${encodeURIComponent(nivelAlerta)}`, undefined, 200);
+            assert.deepEqual(lotes.map(lote => lote._id), [1]);
+        }
+        const anteriores = await solicitud("GET", "/observaciones", undefined, 200);
+        for (const nivelAlerta of ["normal", "Atencion", "Critico", "Urgente", " Normal", null]) {
+            const datos = { ...observacionValida, _id: 399, nivelAlerta };
+            assert.ok(new Observacion(datos).validateSync());
+            assert.deepEqual(await solicitud("POST", "/observaciones", datos, 400), {
+                mensaje: "El nivel de alerta debe ser Normal, Atención o Crítico"
+            });
+            await solicitud("GET", `/lotes?alerta=${encodeURIComponent(nivelAlerta)}`, undefined, 400);
+        }
+        assert.deepEqual(await solicitud("GET", "/observaciones", undefined, 200), anteriores);
+    });
+    // Notas - Andrea | Fin | Niveles de alerta permitidos en API y modelo
 });
 // Notas - Andrea | Fin | Pruebas de regresión de la API

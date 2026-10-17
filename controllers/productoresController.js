@@ -1,10 +1,20 @@
 const Productor = require("../models/Productor");
 const Lote = require("../models/Lote");
 
-const datosValidos = (datos) => {
-    return Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        typeof datos.nombre === "string" && datos.nombre.trim() !== "";
+// Notas - Andrea | Inicio | Cargar productor antes de validar la actualización
+const cargarProductor = async (req, res, next) => {
+    try {
+        const productor = await Productor.findById(Number(req.params.id));
+        if (!productor) {
+            return res.status(404).json({ mensaje: "El productor no existe" });
+        }
+        res.locals.productor = productor;
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
+// Notas - Andrea | Fin | Cargar productor antes de validar la actualización
 
 const obtenerProductores = async (req, res, next) => {
     try {
@@ -29,13 +39,10 @@ const obtenerProductorPorId = async (req, res, next) => {
     }
 };
 
+// Notas - Andrea | Inicio | Crear productor con entrada validada por middleware
 const crearProductor = async (req, res, next) => {
     try {
         const { _id: id, nombre } = req.body || {};
-        const productor = { _id: id, nombre };
-        if (!datosValidos(productor)) {
-            return res.status(400).json({ mensaje: "Se requiere un ID entero positivo y un nombre no vacío" });
-        }
         if (await Productor.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un productor con ese ID" });
         }
@@ -45,28 +52,20 @@ const crearProductor = async (req, res, next) => {
         next(error);
     }
 };
+// Notas - Andrea | Fin | Crear productor con entrada validada por middleware
 
+// Notas - Andrea | Inicio | Actualizar productor cargado con entrada validada
 const actualizarProductor = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
-        const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
-        const productor = await Productor.findById(id);
-        if (!productor) {
-            return res.status(404).json({ mensaje: "El productor no existe" });
-        }
-        const datos = req.body || {};
-        const actualizado = { _id: id, nombre: datos.nombre };
-        if (!datosValidos(actualizado) || (datos._id !== undefined && datos._id !== id)) {
-            return res.status(400).json({ mensaje: "Se requiere un nombre no vacío; el ID no se puede cambiar" });
-        }
-        productor.nombre = actualizado.nombre;
+        const productor = res.locals.productor;
+        productor.nombre = req.body.nombre;
         await productor.save();
         res.json({ mensaje: "Productor actualizado", productor });
     } catch (error) {
         next(error);
     }
 };
+// Notas - Andrea | Fin | Actualizar productor cargado con entrada validada
 
 const eliminarProductor = async (req, res, next) => {
     try {
@@ -87,6 +86,9 @@ const eliminarProductor = async (req, res, next) => {
 };
 
 module.exports = {
+    // Notas - Andrea | Inicio | Exportar la carga previa de productores
+    cargarProductor,
+    // Notas - Andrea | Fin | Exportar la carga previa de productores
     obtenerProductores,
     obtenerProductorPorId,
     crearProductor,

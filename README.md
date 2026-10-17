@@ -86,28 +86,72 @@ La aplicación queda disponible en [http://localhost:3100](http://localhost:3100
 
 El servidor espera la conexión a MongoDB antes de aceptar solicitudes. Si la conexión falla, muestra un mensaje en consola y termina con código de salida 1. Revisar que MongoDB esté activo y que `MONGODB_URI` sea correcta.
 
+<!-- Notas - Andrea | Inicio | Comandos de ejecución y pruebas -->
 | Comando | Acción |
 | --- | --- |
 | `npm install` | Instala las dependencias del proyecto. |
 | `npm start` | Conecta a MongoDB e inicia Express. |
 | `npm run dev` | Ejecuta `node --watch index.js` y reinicia ante cambios en el código. |
 | `npm run importar` | Carga los datos de ejemplo en las cinco colecciones vacías. |
+| `npm test` | Ejecuta `node --test` con las pruebas HTTP y MongoDB de `tests/api.test.js`. |
+<!-- Notas - Andrea | Fin | Comandos de ejecución y pruebas -->
 
 Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
 
+<!-- Notas - Andrea | Inicio | Pruebas automatizadas con MongoDB aislado -->
+## Pruebas automatizadas
+
+Con MongoDB en ejecución y las dependencias instaladas, ejecutar:
+
+```powershell
+npm test
+```
+
+Si PowerShell bloquea `npm.ps1`, usar `npm.cmd test`. El comando utiliza el ejecutor integrado de Node.js (`node --test`), sin agregar una dependencia de pruebas.
+
+`tests/api.test.js` importa `app` sin iniciar automáticamente la aplicación, prepara sus propios datos y realiza solicitudes HTTP para comprobar CRUD, historial, filtros, relaciones, validaciones, logger, respuestas JSON y vistas HTML. Las observaciones conservan únicamente las operaciones de creación y consulta.
+
+Las pruebas se conectan de forma predeterminada a `mongodb://127.0.0.1:27017`. Para usar otro servidor de MongoDB de pruebas, configurar una variable independiente:
+
+```powershell
+$env:TEST_MONGODB_URI = "mongodb://127.0.0.1:27017"
+npm.cmd test
+```
+
+Cada ejecución usa una base nueva con nombre `agrotec_test_<uuid>`. La suite no utiliza `MONGODB_URI` ni la base `agrotec`: fuerza el nombre de la base temporal incluso si la URI de pruebas incluye otro nombre. Al finalizar, comprueba que la conexión corresponde a la base temporal generada antes de eliminarla y cierra las conexiones. No requiere importar los JSON ni limpiar la base de la aplicación.
+<!-- Notas - Andrea | Fin | Pruebas automatizadas con MongoDB aislado -->
+
 ## Estructura
 
-- `index.js`: configuración de Express y Pug, middleware, rutas y arranque del servidor.
+<!-- Notas - Andrea | Inicio | Organización modular y flujo de middleware -->
+- `index.js`: configuración de Express y Pug, middleware y rutas. Exporta `app` para las pruebas e inicia el servidor únicamente al ejecutarse directamente.
 - `config/database.js`: conexión a MongoDB mediante Mongoose.
 - `models/`: esquemas de productores, lotes, técnicos, tipos de cultivo y observaciones, con validaciones y referencias.
 - `controllers/`: procesamiento de solicitudes, reglas de negocio, consultas a MongoDB y renderizado de vistas.
 - `routes/`: rutas de productores, técnicos, lotes, observaciones y vistas.
 - `middleware/logger.js`: registro de fecha, método y URL de las solicitudes.
+- `middleware/validaciones/comunes.js`: funciones compartidas para validar IDs, textos, hectáreas, fechas y niveles de alerta.
+- `middleware/validaciones/parametros.js`: validación de IDs recibidos en las rutas de la API y de las vistas, y de los filtros `alerta` y `tecnicoId`.
+- `middleware/validaciones/productores.js` y `tecnicos.js`: validación de los cuerpos de creación y actualización de cada recurso.
+- `middleware/validaciones/lotes.js`: validación de los cuerpos de creación y actualización parcial.
+- `middleware/validaciones/observaciones.js`: validación del cuerpo de creación.
 - `views/`: plantillas Pug para listados y detalles de lotes y técnicos, y página de error.
 - `data/`: archivos JSON con datos de ejemplo para importar.
 - `scripts/`: carga inicial de datos de ejemplo.
+- `tests/api.test.js`: pruebas de regresión de endpoints, validaciones, relaciones, logger y manejo de errores.
 
-Las rutas delegan las operaciones en los controladores, que acceden a los modelos Mongoose con `async/await`. La API y las vistas utilizan MongoDB; los archivos JSON solo se leen durante la importación.
+Las rutas ejecutan los middleware de validación y delegan las operaciones en los controladores. Los validadores comprueban parámetros, filtros y cuerpos; los controladores consultan MongoDB, comprueban relaciones y dependencias y realizan las operaciones mediante los modelos Mongoose con `async/await`. Los modelos conservan sus validaciones al guardar, también para la importación. La API y las vistas utilizan MongoDB; los archivos JSON solo se leen durante la importación.
+
+El orden de ejecución se conserva:
+
+```text
+logger → express.json() → rutas → validaciones → controladores
+Sin ruta coincidente → middleware 404
+Errores enviados a next(error) → manejador global de errores
+```
+
+En los PUT, la ruta valida el ID, busca el recurso mediante una función del controlador, valida el cuerpo y ejecuta la actualización. Así conserva la respuesta `404` para un recurso inexistente aunque el cuerpo también sea inválido. Los errores de las vistas `/web` se presentan en HTML.
+<!-- Notas - Andrea | Fin | Organización modular y flujo de middleware -->
 
 ## Recursos y datos iniciales
 
@@ -161,10 +205,14 @@ El cultivo del lote y el cultivo registrado en una observación usan IDs. Una ob
 - No se puede eliminar un productor con lotes asociados.
 - No se puede eliminar un técnico con observaciones registradas, para conservar las relaciones del historial.
 - No se puede eliminar un lote con observaciones: así se preservan el historial y sus referencias.
-- El cliente envía el `_id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. No se modifican los IDs del recurso mediante PUT.
+<!-- Notas - Andrea | Inicio | Reglas de validación de entrada y responsabilidades -->
+- El cliente envía el `_id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. PUT permite repetir el `_id` actual, pero rechaza cambiarlo.
 - Las hectáreas deben ser numéricas, finitas y mayores a cero. Nombre, ubicación, estado del cultivo y texto de observaciones deben ser textos no vacíos, según el recurso.
 - PUT de lote requiere al menos uno de estos campos: `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`. Conserva los campos omitidos y rechaza valores inválidos, incluido `null`. PUT de productor y de técnico requieren `nombre`.
-- Las validaciones se realizan en models/controllers. Se utilizan express.json(), el logger y los middleware de ruta inexistente (404) y manejo global de errores. No hay middleware de validación de negocio.
+- Los campos numéricos del cuerpo JSON deben ser números; no se convierten textos como `"1"`. Los IDs de las rutas y el filtro `tecnicoId` conservan la conversión mediante `Number()` y luego se comprueba que sean enteros positivos seguros.
+- Los campos desconocidos del cuerpo se ignoran; solo se guardan los campos definidos para cada recurso.
+- Las validaciones de entrada se realizan en `middleware/validaciones/`; las comprobaciones de existencia, duplicados y relaciones siguen en los controladores. Mongoose conserva las validaciones de sus esquemas. Se mantienen `express.json()`, el logger propio y los middleware de ruta inexistente (404) y manejo global de errores.
+<!-- Notas - Andrea | Fin | Reglas de validación de entrada y responsabilidades -->
 
 ## Endpoints y tabla de pruebas manuales
 
@@ -201,7 +249,9 @@ Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación 
 
 ### Manejo de errores
 
-Las validaciones de negocio responden directamente desde los controllers con 400 o 404 y un mensaje específico. No pasan por un middleware de validación.
+<!-- Notas - Andrea | Inicio | Errores de validación y reglas de negocio -->
+Los middleware de validación responden con `400` y un mensaje específico cuando los parámetros, filtros o cuerpos son inválidos. Los controladores conservan las respuestas `400` o `404` correspondientes a duplicados, recursos inexistentes, relaciones y dependencias. Para las vistas `/web`, los errores de ID se renderizan con `error.pug`; la API responde JSON.
+<!-- Notas - Andrea | Fin | Errores de validación y reglas de negocio -->
 
 Después de las rutas, el middleware 404 responde JSON:
 

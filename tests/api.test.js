@@ -335,5 +335,28 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         assert.deepEqual(await solicitud("GET", "/observaciones", undefined, 200), anteriores);
     });
     // Notas - Andrea | Fin | Niveles de alerta permitidos en API y modelo
+
+    // Notas - Andrea | Inicio | Protección del contenido y persistencia del historial
+    await t.test("las observaciones históricas no se modifican ni se eliminan por la API", async () => {
+        const registroAnterior = await solicitud("GET", "/observaciones/1", undefined, 200);
+        const observacionesAnteriores = await solicitud("GET", "/observaciones", undefined, 200);
+        const historialAnterior = await solicitud("GET", "/lotes/1/observaciones", undefined, 200);
+        const intentos = [
+            ["PUT", "/observaciones/1", { ...observacionValida, observaciones: "Intento de cambio" }],
+            ["PATCH", "/observaciones/1", { nivelAlerta: "Crítico" }],
+            ["DELETE", "/observaciones/1"],
+            ["DELETE", "/observaciones"],
+            ["DELETE", "/observaciones/999"]
+        ];
+        for (const [metodo, ruta, cuerpo] of intentos) {
+            assert.deepEqual(await solicitud(metodo, ruta, cuerpo, 404), { mensaje: "Ruta no encontrada" });
+            assert.deepEqual(await solicitud("GET", "/observaciones/1", undefined, 200), registroAnterior);
+            assert.deepEqual(await solicitud("GET", "/observaciones", undefined, 200), observacionesAnteriores);
+            assert.deepEqual(await solicitud("GET", "/lotes/1/observaciones", undefined, 200), historialAnterior);
+        }
+        assert.deepEqual(await Observacion.findById(1).lean(), registroAnterior);
+        assert.deepEqual(await Observacion.find().lean(), observacionesAnteriores);
+    });
+    // Notas - Andrea | Fin | Protección del contenido y persistencia del historial
 });
 // Notas - Andrea | Fin | Pruebas de regresión de la API

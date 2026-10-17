@@ -244,5 +244,45 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         }
         subtest.mock.restoreAll();
     });
+    // Notas - Andrea | Inicio | Campos obligatorios, tipos y valores de entrada
+    await t.test("cada campo obligatorio y los tipos inválidos se rechazan", async () => {
+        const recursos = [
+            { ruta: "/productores", datos: { _id: 101, nombre: "Productor de prueba" },
+                invalidos: { _id: [null, "101", true], nombre: [null, 17, [], {}, "  "] } },
+            { ruta: "/tecnicos", datos: { _id: 101, nombre: "Técnico de prueba" },
+                invalidos: { _id: [null, "101", true], nombre: [null, 17, [], {}, "  "] } },
+            { ruta: "/lotes", datos: { ...loteValido, _id: 101 },
+                invalidos: { _id: [null, "101"], productorId: [null, "1", false],
+                    tipoCultivoId: [null, "1", false], hectareas: [null, "12", 0, -1],
+                    ubicacion: [null, 17, "  "] } },
+            { ruta: "/observaciones", datos: { ...observacionValida, _id: 101 },
+                invalidos: { _id: [null, "101"], loteId: [null, "1", false],
+                    tecnicoId: [null, "1", false], tipoCultivoId: [null, "1", false],
+                    fecha: [null, 17, "2026-02-30"], estadoCultivo: [null, 17, "  "],
+                    observaciones: [null, 17, "  "], nivelAlerta: [null, [], "Urgente"] } }
+        ];
+
+        for (const { ruta, datos, invalidos } of recursos) {
+            for (const campo of Object.keys(datos)) {
+                const incompleto = { ...datos };
+                delete incompleto[campo];
+                await solicitud("POST", ruta, incompleto, 400);
+            }
+            for (const [campo, valores] of Object.entries(invalidos)) {
+                for (const valor of valores) {
+                    await solicitud("POST", ruta, { ...datos, [campo]: valor }, 400);
+                }
+            }
+            await solicitud("GET", `${ruta}/101`, undefined, 404);
+        }
+        for (const ruta of ["/productores/1", "/tecnicos/1"]) {
+            const anterior = await solicitud("GET", ruta, undefined, 200);
+            for (const nombre of [null, 17, [], "  "]) {
+                await solicitud("PUT", ruta, { nombre }, 400);
+            }
+            assert.deepEqual(await solicitud("GET", ruta, undefined, 200), anterior);
+        }
+    });
+    // Notas - Andrea | Fin | Campos obligatorios, tipos y valores de entrada
 });
 // Notas - Andrea | Fin | Pruebas de regresión de la API

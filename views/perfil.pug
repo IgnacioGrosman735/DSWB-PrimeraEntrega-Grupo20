@@ -1,26 +1,26 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1")
-    title Mi perfil — AgroTec
-    script(src="/js/menu.js" defer)
-  body
-    main#menu-perfil(data-perfil=nombre !== null ? JSON.stringify({ nombre, roles, tecnicoId }) : undefined)
-      h1#bienvenida= nombre !== null ? 'Bienvenido, ' + nombre : 'Bienvenido'
-      p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
-      div#opciones-admin(hidden=!roles.includes('Admin'))
-        p
-          a(href="/web/lotes") Administrar lotes
-        p
-          a(href="/web/tecnicos") Administrar ingenieros
-        p
-          a(href="/web/productores") Administrar clientes
-        p
-          a(href="/web/tipos-cultivo") Administrar tipos de cultivo
-      div#opciones-ingeniero(hidden=!(roles.includes('Ingeniero') && tecnicoId))
-        p
-          a#mis-lotes(href=tecnicoId ? '/web/ingenieros/' + tecnicoId + '/lotes' : undefined) Mis lotes y observaciones
-      p#aviso-perfil(hidden=roles.includes('Admin') || (roles.includes('Ingeniero') && tecnicoId))= nombre === null ? 'Ingresá desde el login para mostrar tu perfil.' : roles.includes('Ingeniero') ? 'El administrador debe vincular tu cuenta a una ficha técnica para cargar observaciones.' : 'El perfil de clientes se incorporará en una próxima etapa.'
-      p
-        a#volver-login(href="/login") Volver al login
+    head
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+        title Mi perfil — AgroTec
+        script(src="/js/menu.js" defer)
+    body
+        main#menu-perfil(data-perfil=nombre !== null ? JSON.stringify({ nombre, roles, tecnicoId }) : undefined)
+            h1#bienvenida= nombre !== null ? 'Bienvenido, ' + nombre : 'Bienvenido'
+            p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
+            div#opciones-admin(hidden=!roles.includes('Admin'))
+                p
+                    a(href="/web/lotes") Administrar lotes
+                p
+                    a(href="/web/tecnicos") Administrar ingenieros
+                p
+                    a(href="/web/productores") Administrar clientes
+                p
+                    a(href="/web/tipos-cultivo") Administrar tipos de cultivo
+            div#opciones-ingeniero(hidden=!(roles.includes('Ingeniero') && tecnicoId))
+                p
+                    a#mis-lotes(href=tecnicoId ? '/web/ingenieros/' + tecnicoId + '/lotes' : undefined) Mis lotes y observaciones
+            p#aviso-perfil(hidden=roles.includes('Admin') || (roles.includes('Ingeniero') && tecnicoId))= nombre === null ? 'Ingresá desde el login para mostrar tu perfil.' : roles.includes('Ingeniero') ? 'El administrador debe vincular tu cuenta a una ficha técnica para cargar observaciones.' : 'El perfil de clientes se incorporará en una próxima etapa.'
+            p
+                a#volver-login(href="/login") Volver al login

@@ -1,43 +1,43 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Iniciar sesión — AgroTec
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Iniciar sesión — AgroTec
 
-  body
-    main
-      h1 AgroTec
-      h2 Iniciar sesión
+    body
+        main
+            h1 AgroTec
+            h2 Iniciar sesión
 
-      if error
-        p(role="alert")= error
+            if error
+                p(role="alert")= error
 
-      form(action="/auth/login" method="POST")
-        div
-          label(for="usuario") Correo electrónico
-          input(
-            type="email"
-            id="usuario"
-            name="usuario"
-            autocomplete="username"
-            maxlength="254"
-            required
-          )
+            form(action="/auth/login" method="POST")
+                div
+                    label(for="usuario") Correo electrónico
+                    input(
+                        type="email"
+                        id="usuario"
+                        name="usuario"
+                        autocomplete="username"
+                        maxlength="254"
+                        required
+                    )
 
-        div
-          label(for="password") Contraseña
-          input(
-            type="password"
-            id="password"
-            name="password"
-            autocomplete="current-password"
-            minlength="15"
-            maxlength="128"
-            required
-          )
+                div
+                    label(for="password") Contraseña
+                    input(
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="current-password"
+                        minlength="15"
+                        maxlength="128"
+                        required
+                    )
 
-        button(type="submit") Ingresar
+                button(type="submit") Ingresar
 
-      p
-        a(href="/auth/olvide-password") Olvidé mi contraseña
+            p
+                a(href="/auth/olvide-password") Olvidé mi contraseña

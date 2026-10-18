@@ -109,7 +109,6 @@ La aplicación queda disponible en [http://localhost:3100](http://localhost:3100
 
 El servidor conecta a MongoDB y prepara validadores, índices y roles antes de aceptar solicitudes. No crea cuentas predeterminadas. Si la conexión falla, muestra un mensaje en consola y termina con código de salida 1. Revisar que MongoDB esté activo y que `MONGODB_URI` sea correcta.
 
-<!-- Notas - Andrea | Inicio | Comandos de ejecución y pruebas -->
 | Comando | Acción |
 | --- | --- |
 | `npm install` | Instala las dependencias del proyecto. |
@@ -118,11 +117,9 @@ El servidor conecta a MongoDB y prepara validadores, índices y roles antes de a
 | `npm run importar` | Carga los datos de ejemplo en las cinco colecciones vacías y crea el Admin inicial. |
 | `npm run auth:preparar` | Opcional: prepara colecciones de autenticación y roles sin iniciar Express; también se preparan al arrancar. |
 | `npm test` | Ejecuta `node --test` con las pruebas HTTP y MongoDB de `tests/api.test.js`. |
-<!-- Notas - Andrea | Fin | Comandos de ejecución y pruebas -->
 
 Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
 
-<!-- Notas - Andrea | Inicio | Pruebas automatizadas con MongoDB aislado -->
 ## Pruebas automatizadas
 
 Con MongoDB en ejecución y las dependencias instaladas, ejecutar:
@@ -135,7 +132,6 @@ Si PowerShell bloquea `npm.ps1`, usar `npm.cmd test`. El comando utiliza el ejec
 
 `tests/api.test.js` importa `app` sin iniciar automáticamente la aplicación, prepara sus propios datos y realiza solicitudes HTTP para comprobar CRUD, historial, filtros, relaciones, validaciones, logger, respuestas JSON y vistas HTML. Las observaciones conservan únicamente las operaciones de creación y consulta.
 
-<!-- Notas - Andrea | Inicio | Cobertura de validaciones y reglas de negocio -->
 La misma suite incorpora seis grupos de comprobaciones de validaciones y reglas de negocio:
 
 1. Omite cada campo obligatorio por separado y prueba tipos y valores inválidos en los cuerpos de creación y actualización.
@@ -148,7 +144,6 @@ La misma suite incorpora seis grupos de comprobaciones de validaciones y reglas 
 Además se comprueban las cuentas vinculadas, el login, los lotes sin cliente, la fecha opcional y el rechazo de observaciones sin cuenta activa, sin asignación o con otro cultivo.
 
 Estas comprobaciones utilizan MongoDB real en la base temporal de la suite. Las comparaciones incluyen los datos almacenados, además de las respuestas HTTP.
-<!-- Notas - Andrea | Fin | Cobertura de validaciones y reglas de negocio -->
 
 Las pruebas se conectan de forma predeterminada a `mongodb://127.0.0.1:27017`. Para usar otro servidor de MongoDB de pruebas, configurar una variable independiente:
 
@@ -158,19 +153,15 @@ npm.cmd test
 ```
 
 Cada ejecución usa una base nueva con nombre `agrotec_test_<uuid>`. La suite no utiliza `MONGODB_URI` ni la base `agrotec`: fuerza el nombre de la base temporal incluso si la URI de pruebas incluye otro nombre. Al finalizar, comprueba que la conexión corresponde a la base temporal generada antes de eliminarla y cierra las conexiones. No requiere importar los JSON ni limpiar la base de la aplicación.
-<!-- Notas - Andrea | Fin | Pruebas automatizadas con MongoDB aislado -->
 
 ## Estructura
 
-<!-- Notas - Andrea | Inicio | Organización modular y flujo de middleware -->
 - `index.js`: configuración de Express y Pug, middleware y rutas. Exporta `app` para las pruebas e inicia el servidor únicamente al ejecutarse directamente.
 - `config/database.js`: conexión a MongoDB mediante Mongoose.
 - `config/coleccionesAuth.js` y `coleccionesNegocio.js`: validaciones e índices de MongoDB.
 - `config/cerrarDB.js`: cierre de conexión en los scripts y ante fallos del arranque.
 - `models/`: esquemas, validaciones y referencias de los recursos, usuarios, roles y asignaciones.
-<!-- Notas - Andrea | Inicio | Catálogo compartido de niveles de alerta -->
 - `config/nivelesAlerta.js`: catálogo inmutable con los niveles de alerta, compartido por el middleware de validación y el esquema de observaciones.
-<!-- Notas - Andrea | Fin | Catálogo compartido de niveles de alerta -->
 - `controllers/`: procesamiento de solicitudes, reglas de negocio, consultas a MongoDB y renderizado de vistas.
 - `routes/`: endpoints de los recursos, autenticación y vistas.
 - `middleware/logger.js`: registro de fecha, método y URL de las solicitudes.
@@ -199,7 +190,6 @@ Errores enviados a next(error) → manejador global de errores
 ```
 
 En los PUT, la ruta valida el ID, busca el recurso mediante una función del controlador, valida el cuerpo y ejecuta la actualización. Así conserva la respuesta `404` para un recurso inexistente aunque el cuerpo también sea inválido. Los errores de las vistas `/web` se presentan en HTML.
-<!-- Notas - Andrea | Fin | Organización modular y flujo de middleware -->
 
 ## Recursos y datos iniciales
 
@@ -251,7 +241,6 @@ El cultivo del lote y el cultivo registrado en una observación usan IDs. Una ob
 
 ## Reglas y validaciones
 
-<!-- Notas - Andrea | Inicio | Integridad de relaciones y conservación del historial -->
 - Cada lote referencia un cultivo existente. El productor es opcional: puede omitirse o ser `null`; si se indica, debe existir.
 - Cada observación pertenece a un lote existente y referencia un técnico y un tipo de cultivo existentes.
 - Antes de crear o actualizar un lote, el controlador comprueba su cultivo y el productor si está asignado. Antes de crear una observación, comprueba su lote, técnico y cultivo. Una referencia inexistente se rechaza con `400` antes de guardar.
@@ -264,17 +253,13 @@ El cultivo del lote y el cultivo registrado en una observación usan IDs. Una ob
 - No se puede eliminar un técnico con observaciones o lotes asignados.
 - No se puede eliminar un lote con observaciones o asignaciones de ingenieros, ni un tipo de cultivo utilizado por lotes u observaciones.
 - Los DELETE anteriores responden `400` cuando encuentran dependencias; la operación rechazada conserva el registro y sus datos relacionados. Un registro sin dependencias puede eliminarse con `200`; si no existe, se responde `404`.
-<!-- Notas - Andrea | Fin | Integridad de relaciones y conservación del historial -->
-<!-- Notas - Andrea | Inicio | Reglas de validación de entrada y responsabilidades -->
 - El cliente envía el `_id` al crear un recurso; no se genera automáticamente. Debe ser un número entero positivo seguro (`Number.isSafeInteger`) y no repetirse en ese recurso. Los identificadores relacionados también deben ser enteros positivos seguros. PUT permite repetir el `_id` actual, pero rechaza cambiarlo.
 - Las hectáreas deben ser numéricas y finitas; el modelo y MongoDB exigen un mínimo de `0.000001`. Nombre, ubicación, estado del cultivo y texto de observaciones deben ser textos no vacíos, según el recurso.
 - PUT de lote requiere al menos uno de estos campos: `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`. Conserva los campos omitidos y permite `productorId: null` para desasignar al cliente. PUT de productor y de técnico requieren `nombre`.
 - Los campos numéricos del cuerpo JSON deben ser números; no se convierten textos como `"1"`. Los IDs de las rutas y el filtro `tecnicoId` conservan la conversión mediante `Number()` y luego se comprueba que sean enteros positivos seguros.
 - Solo se guardan los campos definidos para cada recurso. El antiguo `tecnicoId` en lotes se rechaza: las asignaciones se administran mediante la colección intermedia.
 - Las validaciones de entrada se realizan en `middleware/validaciones/`; las comprobaciones de existencia, duplicados y relaciones siguen en los controladores. Mongoose conserva las validaciones de sus esquemas. Se mantienen `express.json()`, el logger propio y los middleware de ruta inexistente (404) y manejo global de errores.
-<!-- Notas - Andrea | Fin | Reglas de validación de entrada y responsabilidades -->
 
-<!-- Notas - Andrea | Inicio | Campos obligatorios por operación -->
 Todos los campos de la siguiente tabla son obligatorios al crear el recurso:
 
 | Recurso | Campos obligatorios en POST | Campos de PUT |
@@ -285,7 +270,6 @@ Todos los campos de la siguiente tabla son obligatorios al crear el recurso:
 | Observación | `_id`, `loteId`, `tecnicoId`, `tipoCultivoId`, `estadoCultivo`, `observaciones`, `nivelAlerta` | Sin ruta de actualización. |
 
 La validación comprueba el tipo y el valor de cada campo. Un ID numérico no admite fracciones, cero, negativos ni valores fuera del rango de enteros seguros; un texto obligatorio no admite `null`, números ni cadenas vacías o formadas solo por espacios. Las solicitudes inválidas se rechazan antes de guardar.
-<!-- Notas - Andrea | Fin | Campos obligatorios por operación -->
 
 ### Compatibilidad de la integración
 
@@ -344,7 +328,6 @@ Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación 
 
 ### Manejo de errores
 
-<!-- Notas - Andrea | Inicio | Estados HTTP de validaciones y reglas de negocio -->
 | Estado | Cuándo se utiliza |
 | --- | --- |
 | `200` | Consultas, actualizaciones y eliminaciones exitosas. Un listado sin coincidencias devuelve `[]`. |
@@ -355,11 +338,8 @@ Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación 
 | `500` | Fallo inesperado al consultar, guardar o eliminar. El mensaje público es `Error interno del servidor`. |
 
 Una misma ausencia tiene distinto estado según la operación: consultar `/productores/999` responde `404` si no existe; intentar guardar un lote con `productorId: 999` responde `400`. En ambos casos el mensaje es `El productor no existe`. En PUT, la búsqueda del recurso precede a la validación del cuerpo, por lo que un registro inexistente conserva su respuesta `404`.
-<!-- Notas - Andrea | Fin | Estados HTTP de validaciones y reglas de negocio -->
 
-<!-- Notas - Andrea | Inicio | Errores de validación y reglas de negocio -->
 Los middleware de validación responden con `400` y un mensaje específico cuando los parámetros, filtros o cuerpos son inválidos. Los controladores conservan las respuestas `400` o `404` correspondientes a duplicados, recursos inexistentes, relaciones y dependencias. Para las vistas `/web`, los errores de ID se renderizan con `error.pug`; la API responde JSON.
-<!-- Notas - Andrea | Fin | Errores de validación y reglas de negocio -->
 
 Después de las rutas, el middleware 404 responde JSON:
 

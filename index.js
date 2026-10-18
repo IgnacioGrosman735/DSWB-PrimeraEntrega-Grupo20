@@ -26,7 +26,6 @@ app.use("/js", express.static(path.join(__dirname, "public/js")));
 
 app.use(authRoutes);
 
-// Rutas de la API y de las vistas.
 // Etapa sin sesiones: los CRUD todavía no tienen control de acceso.
 app.use("/lotes", lotesRoutes);
 app.use("/productores", productoresRoutes);
@@ -34,22 +33,34 @@ app.use("/tecnicos", tecnicosRoutes);
 app.use("/tipos-cultivo", require("./routes/tiposCultivoRoutes"));
 app.use("/observaciones", observacionesRoutes);
 app.use("/web", vistasRoutes);
-//app.get("/", (req, res) => res.redirect("/web/lotes"));
+
 app.get("/", (req, res) => res.redirect("/login"));
 
 app.use((req, res) => {
     res.status(404).json({ mensaje: "Ruta no encontrada" });
 });
 
-// Express envía aquí los errores de lectura/escritura y del body JSON.
 app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     let estado = error.status || 500;
-    if (error.name === "ValidationError" || error.name === "CastError" || error.code === 11000 || error.code === 121) {
+    if (
+        error.name === "ValidationError" ||
+        error.name === "CastError" ||
+        error.code === 11000 ||
+        error.code === 121
+    ) {
         estado = 400;
     }
-    const mensaje = error.code === 11000 ? (error.keyPattern?.usuario ? "Ese correo ya tiene una cuenta" : error.keyPattern?.usuarioId ? "Esa cuenta ya está vinculada a una ficha" : "Ya existe un registro con ese ID") :
-        estado >= 500 ? "Error interno del servidor" : error.mensajePublico || "Solicitud inválida";
+    const mensaje =
+        error.code === 11000
+            ? error.keyPattern?.usuario
+                ? "Ese correo ya tiene una cuenta"
+                : error.keyPattern?.usuarioId
+                  ? "Esa cuenta ya está vinculada a una ficha"
+                  : "Ya existe un registro con ese ID"
+            : estado >= 500
+              ? "Error interno del servidor"
+              : error.mensajePublico || "Solicitud inválida";
     console.error("Error al procesar la solicitud:", error.name);
 
     if (req.originalUrl.startsWith("/web")) {
@@ -79,10 +90,8 @@ const iniciar = async () => {
     }
 };
 
-// Notas - Andrea | Inicio | Exportar la aplicación para pruebas sin iniciar el servidor
 if (require.main === module) {
     iniciar();
 }
 
 module.exports = app;
-// Notas - Andrea | Fin | Exportar la aplicación para pruebas sin iniciar el servidor

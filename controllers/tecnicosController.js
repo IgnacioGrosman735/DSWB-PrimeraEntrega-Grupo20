@@ -5,12 +5,10 @@ const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const { cuentaIngenieroValida } = require("../services/cuentaIngeniero");
 const { crearAcceso } = require("../services/crearAcceso");
 
-// Notas - Andrea | Inicio | Carga de técnico antes de validar su actualización
 const cargarTecnico = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
+
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
@@ -21,7 +19,6 @@ const cargarTecnico = async (req, res, next) => {
         next(error);
     }
 };
-// Notas - Andrea | Fin | Carga de técnico antes de validar su actualización
 
 const obtenerTecnicos = async (req, res, next) => {
     try {
@@ -33,9 +30,8 @@ const obtenerTecnicos = async (req, res, next) => {
 
 const obtenerTecnicoPorId = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
+
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
@@ -48,9 +44,8 @@ const obtenerTecnicoPorId = async (req, res, next) => {
 
 const crearTecnico = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | Datos de creación validados por middleware
         const { _id: id, nombre } = req.body || {};
-        // Notas - Andrea | Fin | Datos de creación validados por middleware
+
         if (await Tecnico.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un técnico con ese ID" });
         }
@@ -61,23 +56,26 @@ const crearTecnico = async (req, res, next) => {
     }
 };
 
-// Notas - Andrea | Inicio | Actualización de técnico cargado y validado
 const actualizarTecnico = async (req, res, next) => {
     try {
         const tecnico = res.locals.tecnico;
         const datos = req.body || {};
         tecnico.nombre = datos.nombre;
         if (datos.usuario || datos.password || datos.cuentaId !== undefined) {
-            if (datos.usuarioId) return res.status(400).json({ mensaje: "Elegí una cuenta existente o creá una nueva, no ambas" });
+            if (datos.usuarioId)
+                return res
+                    .status(400)
+                    .json({ mensaje: "Elegí una cuenta existente o creá una nueva, no ambas" });
             tecnico.nombre = datos.nombre;
             await crearAcceso(tecnico, "Ingeniero", datos);
             return res.json({ mensaje: "Técnico y acceso actualizados", tecnico });
-
         }
         if (datos.usuarioId !== undefined) {
             const usuarioId = datos.usuarioId === "" ? null : datos.usuarioId;
-            if (!await cuentaIngenieroValida(usuarioId)) {
-                return res.status(400).json({ mensaje: "Seleccioná una cuenta activa con rol Ingeniero" });
+            if (!(await cuentaIngenieroValida(usuarioId))) {
+                return res
+                    .status(400)
+                    .json({ mensaje: "Seleccioná una cuenta activa con rol Ingeniero" });
             }
             tecnico.usuarioId = usuarioId || undefined;
         }
@@ -88,18 +86,21 @@ const actualizarTecnico = async (req, res, next) => {
         next(error);
     }
 };
-// Notas - Andrea | Fin | Actualización de técnico cargado y validado
 
 const eliminarTecnico = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
-        if (!await Tecnico.findById(id)) {
+
+        if (!(await Tecnico.findById(id))) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
         }
         if (await Observacion.findOne({ tecnicoId: id })) {
-            return res.status(400).json({ mensaje: "No se puede eliminar el técnico porque posee observaciones registradas" });
+            return res
+                .status(400)
+                .json({
+                    mensaje:
+                        "No se puede eliminar el técnico porque posee observaciones registradas"
+                });
         }
         if (await TecnicoTieneLote.exists({ tecnicoId: id })) {
             return res.status(400).json({ mensaje: "Primero desasigná los lotes del ingeniero" });
@@ -113,7 +114,11 @@ const eliminarTecnico = async (req, res, next) => {
 
 const mostrarTecnicos = async (req, res, next) => {
     try {
-        res.render("tecnicos", { tecnicos: await Tecnico.find(), lotes: await Lote.find().sort({ _id: 1 }), asignaciones: await TecnicoTieneLote.find() });
+        res.render("tecnicos", {
+            tecnicos: await Tecnico.find(),
+            lotes: await Lote.find().sort({ _id: 1 }),
+            asignaciones: await TecnicoTieneLote.find()
+        });
     } catch (error) {
         next(error);
     }
@@ -121,9 +126,8 @@ const mostrarTecnicos = async (req, res, next) => {
 
 const mostrarTecnico = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
+
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).render("error", { mensaje: "El técnico no existe" });
@@ -138,9 +142,9 @@ module.exports = {
     obtenerTecnicos,
     obtenerTecnicoPorId,
     crearTecnico,
-    // Notas - Andrea | Inicio | Exportación de carga previa del técnico
+
     cargarTecnico,
-    // Notas - Andrea | Fin | Exportación de carga previa del técnico
+
     actualizarTecnico,
     eliminarTecnico,
     mostrarTecnicos,

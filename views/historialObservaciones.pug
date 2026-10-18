@@ -1,39 +1,39 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title Historial del lote #{lote._id}
-    include includes/estilosTabla
-  body
-    include includes/navegacionAbm
-    h1 Historial del lote #{lote._id}
-    p Observaciones registradas por: #{tecnico.nombre}
-    p Ubicación: #{lote.ubicacion}
-    a(href="/web/ingenieros/" + tecnico._id + "/lotes") Volver a mis lotes
-    if historial.length
-      .tabla-contenedor
-        table.tabla-abm
-          thead
-            tr
-              th(scope="col") ID
-              th(scope="col") Fecha
-              th(scope="col") Ingeniero
-              th(scope="col") Cultivo
-              th(scope="col") Estado del cultivo
-              th(scope="col") Estado de carga
-              th(scope="col") Observaciones
-              th(scope="col") Alerta
-          tbody
-            each registro in historial
-              tr
-                td= registro._id
-                td= registro.fecha
-                td= registro.tecnicoId ? registro.tecnicoId.nombre : 'Técnico no disponible'
-                td= registro.tipoCultivoId ? registro.tipoCultivoId.nombre : 'Cultivo no disponible'
-                td= registro.estadoCultivo
-                td= registro.estado || 'Cargada'
-                td= registro.observaciones
-                td= registro.nivelAlerta
-    else
-      p Todavía no registraste observaciones en este lote.
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Historial del lote #{lote._id}
+        include includes/estilosTabla
+    body
+        include includes/navegacionAbm
+        h1 Historial del lote #{lote._id}
+        p Observaciones registradas por: #{tecnico.nombre}
+        p Ubicación: #{lote.ubicacion}
+        a(href="/web/ingenieros/" + tecnico._id + "/lotes") Volver a mis lotes
+        if historial.length
+            .tabla-contenedor
+                table.tabla-abm
+                    thead
+                        tr
+                            th(scope="col") ID
+                            th(scope="col") Fecha
+                            th(scope="col") Ingeniero
+                            th(scope="col") Cultivo
+                            th(scope="col") Estado del cultivo
+                            th(scope="col") Estado de carga
+                            th(scope="col") Observaciones
+                            th(scope="col") Alerta
+                    tbody
+                        each registro in historial
+                            tr
+                                td= registro._id
+                                td= registro.fecha
+                                td= registro.tecnicoId ? registro.tecnicoId.nombre : 'Técnico no disponible'
+                                td= registro.tipoCultivoId ? registro.tipoCultivoId.nombre : 'Cultivo no disponible'
+                                td= registro.estadoCultivo
+                                td= registro.estado || 'Cargada'
+                                td= registro.observaciones
+                                td= registro.nivelAlerta
+        else
+            p Todavía no registraste observaciones en este lote.

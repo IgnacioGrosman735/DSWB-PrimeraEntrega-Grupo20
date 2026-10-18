@@ -1,24 +1,22 @@
 {
-  "name": "primeraentrega",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "_comentarioInicioScripts": "Notas - Andrea | Inicio | Comando de pruebas de regresión",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js",
-    "importar": "node scripts/importarDatos.js",
-    "auth:preparar": "node scripts/prepararAuth.js",
-    "test": "node --test"
-  },
-  "_comentarioFinScripts": "Notas - Andrea | Fin | Comando de pruebas de regresión",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "express": "^5.2.1",
-    "mongoose": "^6.13.10",
-    "pug": "^3.0.4"
-  }
+    "name": "primeraentrega",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "node --watch index.js",
+        "importar": "node scripts/importarDatos.js",
+        "auth:preparar": "node scripts/prepararAuth.js",
+        "test": "node --test"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "dependencies": {
+        "express": "^5.2.1",
+        "mongoose": "^6.13.10",
+        "pug": "^3.0.4"
+    }
 }

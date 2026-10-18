@@ -26,14 +26,17 @@ async function crearAdminInicial() {
     if (!admin) {
         const passwordSeguro = await Usuario.crearPasswordSeguro("administrador123456789");
         admin = await Usuario.create({
-            _id: 1, nombre: "seba", usuario: "admin@prueba.com",
-            ...passwordSeguro, activo: true
+            _id: 1,
+            nombre: "seba",
+            usuario: "admin@prueba.com",
+            ...passwordSeguro,
+            activo: true
         });
         console.log("Usuario Admin inicial creado");
     } else {
         console.log("Usuario Admin existente conservado, sin cambiar su contraseña");
     }
-    if (!await UsuarioTieneRol.findOne({ usuarioId: admin._id, rolId: 1 })) {
+    if (!(await UsuarioTieneRol.findOne({ usuarioId: admin._id, rolId: 1 }))) {
         await UsuarioTieneRol.create({ _id: 1, usuarioId: admin._id, rolId: 1 });
     }
 }
@@ -48,14 +51,29 @@ const importar = async () => {
             [Lote, "lotes.json"],
             [Observacion, "observaciones.json"]
         ]) {
-            const datos = JSON.parse(fs.readFileSync(path.join(__dirname, "../data", archivo), "utf-8"));
+            const datos = JSON.parse(
+                fs.readFileSync(path.join(__dirname, "../data", archivo), "utf-8")
+            );
             const documentos = [];
             for (const dato of datos) {
-                if (!Number.isSafeInteger(dato.id) || dato.id <= 0 || documentos.some(documento => documento._id === dato.id)) {
+                if (
+                    !Number.isSafeInteger(dato.id) ||
+                    dato.id <= 0 ||
+                    documentos.some((documento) => documento._id === dato.id)
+                ) {
                     throw new Error("Datos inválidos o IDs repetidos en " + archivo);
                 }
-                for (const campo of ["hectareas", "loteId", "tecnicoId", "tipoCultivoId", "productorId"]) {
-                    if (dato[campo] !== undefined && (typeof dato[campo] !== "number" || !Number.isFinite(dato[campo]))) {
+                for (const campo of [
+                    "hectareas",
+                    "loteId",
+                    "tecnicoId",
+                    "tipoCultivoId",
+                    "productorId"
+                ]) {
+                    if (
+                        dato[campo] !== undefined &&
+                        (typeof dato[campo] !== "number" || !Number.isFinite(dato[campo]))
+                    ) {
                         throw new Error("Valor numérico inválido en " + archivo);
                     }
                 }
@@ -68,15 +86,19 @@ const importar = async () => {
         }
         const [productores, tecnicos, cultivos, lotes, observaciones] = cargas;
         for (const lote of lotes.documentos) {
-            if (!productores.documentos.some(productor => productor._id === lote.productorId) ||
-                !cultivos.documentos.some(cultivo => cultivo._id === lote.tipoCultivoId)) {
+            if (
+                !productores.documentos.some((productor) => productor._id === lote.productorId) ||
+                !cultivos.documentos.some((cultivo) => cultivo._id === lote.tipoCultivoId)
+            ) {
                 throw new Error("Relación inválida en lotes.json");
             }
         }
         for (const observacion of observaciones.documentos) {
-            if (!lotes.documentos.some(lote => lote._id === observacion.loteId) ||
-                !tecnicos.documentos.some(tecnico => tecnico._id === observacion.tecnicoId) ||
-                !cultivos.documentos.some(cultivo => cultivo._id === observacion.tipoCultivoId)) {
+            if (
+                !lotes.documentos.some((lote) => lote._id === observacion.loteId) ||
+                !tecnicos.documentos.some((tecnico) => tecnico._id === observacion.tecnicoId) ||
+                !cultivos.documentos.some((cultivo) => cultivo._id === observacion.tipoCultivoId)
+            ) {
                 throw new Error("Relación inválida en observaciones.json");
             }
         }
@@ -95,7 +117,9 @@ const importar = async () => {
             for (const documento of documentos) {
                 await documento.save();
             }
-            console.log(Modelo.collection.name + ": " + documentos.length + " documentos importados");
+            console.log(
+                Modelo.collection.name + ": " + documentos.length + " documentos importados"
+            );
         }
     } catch (error) {
         console.error("No se completó la importación:", error.message);

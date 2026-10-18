@@ -1,36 +1,36 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title Agrotec - Lotes
-    include includes/estilosTabla
-  body
-    include includes/navegacionAbm
-    h1 Lotes
-    a(href="/web/lotes/nuevo") Crear lote
-    if lotes.length
-      .tabla-contenedor
-        table.tabla-abm
-          caption Detalles de los lotes
-          thead
-            tr
-              th(scope="col") Lote
-              th(scope="col") Ubicación
-              th(scope="col") Hectáreas
-              th(scope="col") Tipo de cultivo
-              th.acciones(scope="col") Acciones
-          tbody
-            each lote in lotes
-              tr
-                td
-                  a(href="/web/lotes/" + lote._id) Lote #{lote._id}
-                td= lote.ubicacion
-                td= lote.hectareas
-                td= lote.tipoCultivoId ? lote.tipoCultivoId.nombre : 'Sin cultivo'
-                td.acciones
-                  a.boton-editar(href="/web/lotes/" + lote._id + "/editar") Editar
-                  button(type="button" data-eliminar="/lotes/" + lote._id) Eliminar lote
-    else
-      p No hay lotes registrados.
-    a(href="/lotes") Ver lotes en JSON
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Agrotec - Lotes
+        include includes/estilosTabla
+    body
+        include includes/navegacionAbm
+        h1 Lotes
+        a(href="/web/lotes/nuevo") Crear lote
+        if lotes.length
+            .tabla-contenedor
+                table.tabla-abm
+                    caption Detalles de los lotes
+                    thead
+                        tr
+                            th(scope="col") Lote
+                            th(scope="col") Ubicación
+                            th(scope="col") Hectáreas
+                            th(scope="col") Tipo de cultivo
+                            th.acciones(scope="col") Acciones
+                    tbody
+                        each lote in lotes
+                            tr
+                                td
+                                    a(href="/web/lotes/" + lote._id) Lote #{lote._id}
+                                td= lote.ubicacion
+                                td= lote.hectareas
+                                td= lote.tipoCultivoId ? lote.tipoCultivoId.nombre : 'Sin cultivo'
+                                td.acciones
+                                    a.boton-editar(href="/web/lotes/" + lote._id + "/editar") Editar
+                                    button(type="button" data-eliminar="/lotes/" + lote._id) Eliminar lote
+        else
+            p No hay lotes registrados.
+        a(href="/lotes") Ver lotes en JSON

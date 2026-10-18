@@ -1,42 +1,42 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title Ingenieros
-    include includes/estilosTabla
-  body
-    include includes/navegacionAbm
-    h1 Ingenieros
-    a(href="/web/tecnicos/nuevo") Crear ingeniero
-    p Cada registro puede tener varios lotes. Usá Administrar lotes para asignarlos o quitarlos.
-    if tecnicos.length
-      .tabla-contenedor
-        table.tabla-abm
-          caption Ingenieros y sus lotes asignados
-          thead
-            tr
-              th(scope="col") ID
-              th(scope="col") Nombre
-              th(scope="col") Lotes asignados
-              th.acciones(scope="col") Acciones
-          tbody
-            each tecnico in tecnicos
-              - const asignados = lotes.filter(lote => asignaciones.some(a => a.tecnicoId === tecnico._id && a.loteId === lote._id))
-              tr
-                td= tecnico._id
-                td= tecnico.nombre
-                td
-                  if asignados.length
-                    ul.lotes-asignados
-                      each lote in asignados
-                        li
-                          a(href="/web/lotes/" + lote._id) Lote #{lote._id} — #{lote.ubicacion}
-                  else
-                    span Sin lotes asignados
-                td.acciones
-                  a.boton-editar(href="/web/tecnicos/" + tecnico._id + "/lotes") Administrar lotes
-                  a.boton-editar(href="/web/tecnicos/" + tecnico._id + "/editar") Editar
-                  button(type="button" data-eliminar="/tecnicos/" + tecnico._id) Eliminar ingeniero
-    else
-      p No hay registros.
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Ingenieros
+        include includes/estilosTabla
+    body
+        include includes/navegacionAbm
+        h1 Ingenieros
+        a(href="/web/tecnicos/nuevo") Crear ingeniero
+        p Cada registro puede tener varios lotes. Usá Administrar lotes para asignarlos o quitarlos.
+        if tecnicos.length
+            .tabla-contenedor
+                table.tabla-abm
+                    caption Ingenieros y sus lotes asignados
+                    thead
+                        tr
+                            th(scope="col") ID
+                            th(scope="col") Nombre
+                            th(scope="col") Lotes asignados
+                            th.acciones(scope="col") Acciones
+                    tbody
+                        each tecnico in tecnicos
+                            - const asignados = lotes.filter(lote => asignaciones.some(a => a.tecnicoId === tecnico._id && a.loteId === lote._id))
+                            tr
+                                td= tecnico._id
+                                td= tecnico.nombre
+                                td
+                                    if asignados.length
+                                        ul.lotes-asignados
+                                            each lote in asignados
+                                                li
+                                                    a(href="/web/lotes/" + lote._id) Lote #{lote._id} — #{lote.ubicacion}
+                                    else
+                                        span Sin lotes asignados
+                                td.acciones
+                                    a.boton-editar(href="/web/tecnicos/" + tecnico._id + "/lotes") Administrar lotes
+                                    a.boton-editar(href="/web/tecnicos/" + tecnico._id + "/editar") Editar
+                                    button(type="button" data-eliminar="/tecnicos/" + tecnico._id) Eliminar ingeniero
+        else
+            p No hay registros.

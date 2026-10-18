@@ -1,35 +1,35 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title Lotes de #{persona.nombre}
-    include includes/estilosTabla
-  body
-    include includes/navegacionAbm
-    h1 Lotes de #{persona.nombre}
-    p Podés asignar varios lotes. Quitar una asignación conserva el lote.
-    a(href="/web/" + recurso) Volver al listado
-    each grupo in ['Asignados', 'Disponibles']
-      - const filas = lotes.filter(lote => grupo === 'Asignados' ? idsAsignados.includes(lote._id) : !idsAsignados.includes(lote._id))
-      h2= grupo
-      if filas.length
-        .tabla-contenedor
-          table.tabla-abm
-            thead
-              tr
-                th(scope="col") Lote
-                th(scope="col") Ubicación
-                th(scope="col") Hectáreas
-                th.acciones(scope="col") Acciones
-            tbody
-              each lote in filas
-                tr
-                  td
-                    a(href="/web/lotes/" + lote._id) Lote #{lote._id}
-                  td= lote.ubicacion
-                  td= lote.hectareas
-                  td.acciones
-                    button(type="button" data-asignar=recurso === "tecnicos" ? "/tecnicos/" + persona._id + "/lotes/" + lote._id : "/lotes/" + lote._id data-metodo=recurso === "tecnicos" && grupo === "Asignados" ? "DELETE" : "PUT" data-campo=recurso === "tecnicos" ? undefined : campo data-persona=grupo === 'Asignados' ? '' : persona._id)= grupo === 'Asignados' ? 'Quitar asignación' : 'Asignar lote'
-      else
-        p No hay lotes en este grupo.
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Lotes de #{persona.nombre}
+        include includes/estilosTabla
+    body
+        include includes/navegacionAbm
+        h1 Lotes de #{persona.nombre}
+        p Podés asignar varios lotes. Quitar una asignación conserva el lote.
+        a(href="/web/" + recurso) Volver al listado
+        each grupo in ['Asignados', 'Disponibles']
+            - const filas = lotes.filter(lote => grupo === 'Asignados' ? idsAsignados.includes(lote._id) : !idsAsignados.includes(lote._id))
+            h2= grupo
+            if filas.length
+                .tabla-contenedor
+                    table.tabla-abm
+                        thead
+                            tr
+                                th(scope="col") Lote
+                                th(scope="col") Ubicación
+                                th(scope="col") Hectáreas
+                                th.acciones(scope="col") Acciones
+                        tbody
+                            each lote in filas
+                                tr
+                                    td
+                                        a(href="/web/lotes/" + lote._id) Lote #{lote._id}
+                                    td= lote.ubicacion
+                                    td= lote.hectareas
+                                    td.acciones
+                                        button(type="button" data-asignar=recurso === "tecnicos" ? "/tecnicos/" + persona._id + "/lotes/" + lote._id : "/lotes/" + lote._id data-metodo=recurso === "tecnicos" && grupo === "Asignados" ? "DELETE" : "PUT" data-campo=recurso === "tecnicos" ? undefined : campo data-persona=grupo === 'Asignados' ? '' : persona._id)= grupo === 'Asignados' ? 'Quitar asignación' : 'Asignar lote'
+            else
+                p No hay lotes en este grupo.

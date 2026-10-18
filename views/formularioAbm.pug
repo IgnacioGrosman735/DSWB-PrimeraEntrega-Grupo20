@@ -1,60 +1,60 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title #{editar ? 'Editar' : 'Crear'} #{titulo}
-  body
-    include includes/navegacionAbm
-    h1 #{editar ? 'Editar' : 'Crear'} #{titulo}
-    form#formulario-abm(data-api="/" + recurso + (editar ? "/" + datos._id : "") data-metodo=editar ? "PUT" : "POST" data-destino="/web/" + recurso)
-      p
-        label(for="_id") ID numérico
-        input#_id(type="number" name="_id" min="1" max="9007199254740991" step="1" required readonly=editar value=datos._id)
-      if recurso === 'lotes'
-        p
-          label(for="ubicacion") Ubicación
-          input#ubicacion(name="ubicacion" required pattern=".*\\S.*" title="Ingresá una ubicación, no solo espacios" value=datos.ubicacion)
-        p
-          label(for="hectareas") Hectáreas
-          input#hectareas(type="number" name="hectareas" min="0.000001" step="any" required value=datos.hectareas)
-        p
-          label(for="tipoCultivoId") Tipo de cultivo
-          select#tipoCultivoId(name="tipoCultivoId" required)
-            option(value="") Seleccionar cultivo
-            each cultivo in cultivos
-              option(value=cultivo._id selected=cultivo._id === datos.tipoCultivoId)= cultivo.nombre
-        if !cultivos.length
-          p Primero creá un tipo de cultivo.
-      else
-        p
-          label(for="nombre") Nombre
-          input#nombre(name="nombre" required maxlength=(recurso === 'tecnicos' || recurso === 'productores') ? 100 : undefined pattern=".*\\S.*" title="Ingresá un nombre, no solo espacios" value=datos.nombre)
-      if (recurso === 'tecnicos' || recurso === 'productores') && (!editar || !datos.usuarioId)
-        h2 Crear cuenta de acceso
-        p
-          label(for="cuentaId") ID del usuario
-          input#cuentaId(type="number" name="cuentaId" min="1" max="9007199254740991" step="1" required=!editar)
-        if editar
-          p Completá el ID del usuario, correo y contraseña para crear el acceso. Dejalos vacíos para conservar la ficha sin cuenta.
-        p
-          label(for="usuario") Correo para iniciar sesión
-          input#usuario(type="email" name="usuario" maxlength="254" required=!editar autocomplete="off")
-        p
-          label(for="password") Contraseña (15 a 128 caracteres)
-          input#password(type="password" name="password" minlength="15" maxlength="128" required=!editar autocomplete="new-password")
-        p El rol se asigna automáticamente según el tipo de ficha.
-      if editar && datos.usuarioId && (recurso === 'tecnicos' || recurso === 'productores')
-        p Cuenta de acceso vinculada: #{datos.usuarioId}
-      if recurso === 'tecnicos' && editar
-        p
-          label(for="usuarioId") Cuenta de acceso (opcional)
-          select#usuarioId(name="usuarioId")
-            option(value="") Sin cuenta vinculada
-            each cuenta in cuentas
-              option(value=cuenta._id selected=String(cuenta._id) === String(datos.usuarioId))= cuenta.usuario
-        p Esta ficha permite asignar lotes. Vinculá una cuenta con rol Ingeniero para identificar al usuario que inicia sesión.
-      button(type="submit") Guardar
-      |
-      a(href="/web/" + recurso) Cancelar
-    noscript Para guardar este formulario tenés que habilitar JavaScript.
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title #{editar ? 'Editar' : 'Crear'} #{titulo}
+    body
+        include includes/navegacionAbm
+        h1 #{editar ? 'Editar' : 'Crear'} #{titulo}
+        form#formulario-abm(data-api="/" + recurso + (editar ? "/" + datos._id : "") data-metodo=editar ? "PUT" : "POST" data-destino="/web/" + recurso)
+            p
+                label(for="_id") ID numérico
+                input#_id(type="number" name="_id" min="1" max="9007199254740991" step="1" required readonly=editar value=datos._id)
+            if recurso === 'lotes'
+                p
+                    label(for="ubicacion") Ubicación
+                    input#ubicacion(name="ubicacion" required pattern=".*\\S.*" title="Ingresá una ubicación, no solo espacios" value=datos.ubicacion)
+                p
+                    label(for="hectareas") Hectáreas
+                    input#hectareas(type="number" name="hectareas" min="0.000001" step="any" required value=datos.hectareas)
+                p
+                    label(for="tipoCultivoId") Tipo de cultivo
+                    select#tipoCultivoId(name="tipoCultivoId" required)
+                        option(value="") Seleccionar cultivo
+                        each cultivo in cultivos
+                            option(value=cultivo._id selected=cultivo._id === datos.tipoCultivoId)= cultivo.nombre
+                if !cultivos.length
+                    p Primero creá un tipo de cultivo.
+            else
+                p
+                    label(for="nombre") Nombre
+                    input#nombre(name="nombre" required maxlength=(recurso === 'tecnicos' || recurso === 'productores') ? 100 : undefined pattern=".*\\S.*" title="Ingresá un nombre, no solo espacios" value=datos.nombre)
+            if (recurso === 'tecnicos' || recurso === 'productores') && (!editar || !datos.usuarioId)
+                h2 Crear cuenta de acceso
+                p
+                    label(for="cuentaId") ID del usuario
+                    input#cuentaId(type="number" name="cuentaId" min="1" max="9007199254740991" step="1" required=!editar)
+                if editar
+                    p Completá el ID del usuario, correo y contraseña para crear el acceso. Dejalos vacíos para conservar la ficha sin cuenta.
+                p
+                    label(for="usuario") Correo para iniciar sesión
+                    input#usuario(type="email" name="usuario" maxlength="254" required=!editar autocomplete="off")
+                p
+                    label(for="password") Contraseña (15 a 128 caracteres)
+                    input#password(type="password" name="password" minlength="15" maxlength="128" required=!editar autocomplete="new-password")
+                p El rol se asigna automáticamente según el tipo de ficha.
+            if editar && datos.usuarioId && (recurso === 'tecnicos' || recurso === 'productores')
+                p Cuenta de acceso vinculada: #{datos.usuarioId}
+            if recurso === 'tecnicos' && editar
+                p
+                    label(for="usuarioId") Cuenta de acceso (opcional)
+                    select#usuarioId(name="usuarioId")
+                        option(value="") Sin cuenta vinculada
+                        each cuenta in cuentas
+                            option(value=cuenta._id selected=String(cuenta._id) === String(datos.usuarioId))= cuenta.usuario
+                p Esta ficha permite asignar lotes. Vinculá una cuenta con rol Ingeniero para identificar al usuario que inicia sesión.
+            button(type="submit") Guardar
+            |
+            a(href="/web/" + recurso) Cancelar
+        noscript Para guardar este formulario tenés que habilitar JavaScript.

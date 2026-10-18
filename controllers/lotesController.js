@@ -4,7 +4,6 @@ const Lote = require("../models/Lote");
 const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const Observacion = require("../models/Observacion");
 
-// Notas - Andrea | Inicio | Carga del lote antes de validar la actualización
 const cargarLote = async (req, res, next) => {
     try {
         const lote = await Lote.findById(Number(req.params.id));
@@ -17,17 +16,13 @@ const cargarLote = async (req, res, next) => {
         next(error);
     }
 };
-// Notas - Andrea | Fin | Carga del lote antes de validar la actualización
 
 const obtenerLotes = async (req, res, next) => {
     try {
         if (req.query.alerta !== undefined) {
-            // Notas - Andrea | Inicio | Filtro de alerta validado por middleware
-            // El filtro ya cumple los niveles admitidos antes de consultar el historial.
-            // Notas - Andrea | Fin | Filtro de alerta validado por middleware
             // Se considera todo el historial, sin repetir lotes.
             const observaciones = await Observacion.find({ nivelAlerta: req.query.alerta });
-            const ids = observaciones.map(observacion => observacion.loteId);
+            const ids = observaciones.map((observacion) => observacion.loteId);
             return res.json(await Lote.find({ _id: { $in: ids } }));
         }
         res.json(await Lote.find());
@@ -38,9 +33,7 @@ const obtenerLotes = async (req, res, next) => {
 
 const obtenerLotePorId = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
 
         const lote = await Lote.findById(id);
 
@@ -59,18 +52,18 @@ const obtenerLotePorId = async (req, res, next) => {
 const crearLote = async (req, res, next) => {
     try {
         const { _id: id, hectareas, tipoCultivoId, productorId = null, ubicacion } = req.body || {};
-        if (req.body?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
+        if (req.body?.tecnicoId !== undefined)
+            return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
         const nuevoLote = { _id: id, hectareas, tipoCultivoId, productorId, ubicacion };
         if (await Lote.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un lote con ese ID" });
         }
-        if (productorId != null && !await Productor.findById(productorId)) {
+        if (productorId != null && !(await Productor.findById(productorId))) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
-        if (!await TipoCultivo.findById(tipoCultivoId)) {
+        if (!(await TipoCultivo.findById(tipoCultivoId))) {
             return res.status(400).json({ mensaje: "El tipo de cultivo no existe" });
         }
-
 
         const creado = await new Lote(nuevoLote).save();
 
@@ -85,15 +78,18 @@ const crearLote = async (req, res, next) => {
 
 const actualizarLote = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | Actualización parcial con lote cargado y datos validados
-        if (req.body?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
+        if (req.body?.tecnicoId !== undefined)
+            return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
         const lote = res.locals.lote;
         const actualizado = res.locals.loteActualizado;
-        // Notas - Andrea | Fin | Actualización parcial con lote cargado y datos validados
-        if (actualizado.productorId != null && !await Productor.findById(actualizado.productorId)) {
+
+        if (
+            actualizado.productorId != null &&
+            !(await Productor.findById(actualizado.productorId))
+        ) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
-        if (!await TipoCultivo.findById(actualizado.tipoCultivoId)) {
+        if (!(await TipoCultivo.findById(actualizado.tipoCultivoId))) {
             return res.status(400).json({ mensaje: "El tipo de cultivo no existe" });
         }
         Object.assign(lote, actualizado);
@@ -111,11 +107,9 @@ const actualizarLote = async (req, res, next) => {
 
 const eliminarLote = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
 
-        if (!await Lote.findById(id)) {
+        if (!(await Lote.findById(id))) {
             return res.status(404).json({
                 mensaje: "Lote no encontrado"
             });
@@ -128,7 +122,9 @@ const eliminarLote = async (req, res, next) => {
         }
 
         if (await TecnicoTieneLote.exists({ loteId: id })) {
-            return res.status(400).json({ mensaje: "Primero quitá las asignaciones de ingenieros del lote" });
+            return res
+                .status(400)
+                .json({ mensaje: "Primero quitá las asignaciones de ingenieros del lote" });
         }
         await Lote.deleteOne({ _id: id });
 
@@ -142,7 +138,9 @@ const eliminarLote = async (req, res, next) => {
 
 const mostrarLotes = async (req, res, next) => {
     try {
-        res.render("lotes", { lotes: await Lote.find().populate("tipoCultivoId").sort({ _id: 1 }) });
+        res.render("lotes", {
+            lotes: await Lote.find().populate("tipoCultivoId").sort({ _id: 1 })
+        });
     } catch (error) {
         next(error);
     }
@@ -150,9 +148,8 @@ const mostrarLotes = async (req, res, next) => {
 
 const mostrarLote = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
+
         const datos = await Lote.findById(id);
         if (!datos) {
             return res.status(404).render("error", { mensaje: "Lote no encontrado" });
@@ -167,10 +164,9 @@ const mostrarLote = async (req, res, next) => {
 
 const obtenerHistorial = async (req, res, next) => {
     try {
-        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        // Notas - Andrea | Fin | ID validado por middleware
-        if (!await Lote.findById(id)) {
+
+        if (!(await Lote.findById(id))) {
             return res.status(404).json({ mensaje: "Lote no encontrado" });
         }
         res.json(await Observacion.find({ loteId: id }));
@@ -182,9 +178,9 @@ const obtenerHistorial = async (req, res, next) => {
 module.exports = {
     obtenerLotes,
     obtenerLotePorId,
-    // Notas - Andrea | Inicio | Carga de lote disponible para las rutas de actualización
+
     cargarLote,
-    // Notas - Andrea | Fin | Carga de lote disponible para las rutas de actualización
+
     crearLote,
     actualizarLote,
     eliminarLote,

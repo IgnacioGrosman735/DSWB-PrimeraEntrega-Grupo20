@@ -15,18 +15,28 @@ const mostrarLogin = (req, res, next) => {
 async function iniciarSesion(req, res, next) {
     try {
         const { usuario: correo, password } = req.credenciales;
-        const usuario = await Usuario.findOne({ usuario: correo }).select("+passwordHash +salt +passwordIteraciones");
+        const usuario = await Usuario.findOne({ usuario: correo }).select(
+            "+passwordHash +salt +passwordIteraciones"
+        );
 
-        const cuentaParaValidar = usuario || new Usuario({
-            salt: "0".repeat(32), passwordHash: "0".repeat(128), passwordIteraciones: ITERACIONES
-        });
+        const cuentaParaValidar =
+            usuario ||
+            new Usuario({
+                salt: "0".repeat(32),
+                passwordHash: "0".repeat(128),
+                passwordIteraciones: ITERACIONES
+            });
         const valido = await cuentaParaValidar.validarPassword(password);
         if (!usuario || !valido || !usuario.activo) {
             return res.status(401).render("login", { error: "Correo o contraseña incorrectos" });
         }
         const relaciones = await UsuarioTieneRol.find({ usuarioId: usuario._id }).populate("rolId");
-        const roles = relaciones.filter(relacion => relacion.rolId).map(relacion => relacion.rolId.nombre);
-        const tecnico = roles.includes("Ingeniero") ? await Tecnico.findOne({ usuarioId: usuario._id }) : null;
+        const roles = relaciones
+            .filter((relacion) => relacion.rolId)
+            .map((relacion) => relacion.rolId.nombre);
+        const tecnico = roles.includes("Ingeniero")
+            ? await Tecnico.findOne({ usuarioId: usuario._id })
+            : null;
         res.render("perfil", { nombre: usuario.nombre, roles, tecnicoId: tecnico?._id || null });
     } catch (error) {
         next(error);

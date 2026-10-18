@@ -1,33 +1,33 @@
 doctype html
 html(lang="es")
-  head
-    meta(charset="utf-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    title Mis lotes
-    include includes/estilosTabla
-  body
-    include includes/navegacionAbm
-    h1 Lotes de #{tecnico.nombre}
-    if lotes.length
-      .tabla-contenedor
-        table.tabla-abm
-          caption Lotes asignados para registrar observaciones
-          thead
-            tr
-              th(scope="col") Lote
-              th(scope="col") Ubicación
-              th(scope="col") Hectáreas
-              th(scope="col") Cultivo
-              th.acciones(scope="col") Acciones
-          tbody
-            each lote in lotes
-              tr
-                td= lote._id
-                td= lote.ubicacion
-                td= lote.hectareas
-                td= lote.tipoCultivoId ? lote.tipoCultivoId.nombre : 'Sin cultivo'
-                td.acciones
-                  a.boton-editar(href="/web/ingenieros/" + tecnico._id + "/lotes/" + lote._id + "/observaciones") Nueva observación
-                  a.boton-editar(href="/web/ingenieros/" + tecnico._id + "/lotes/" + lote._id + "/historial") Ver historial
-    else
-      p No tenés lotes asignados. Contactá al administrador.
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Mis lotes
+        include includes/estilosTabla
+    body
+        include includes/navegacionAbm
+        h1 Lotes de #{tecnico.nombre}
+        if lotes.length
+            .tabla-contenedor
+                table.tabla-abm
+                    caption Lotes asignados para registrar observaciones
+                    thead
+                        tr
+                            th(scope="col") Lote
+                            th(scope="col") Ubicación
+                            th(scope="col") Hectáreas
+                            th(scope="col") Cultivo
+                            th.acciones(scope="col") Acciones
+                    tbody
+                        each lote in lotes
+                            tr
+                                td= lote._id
+                                td= lote.ubicacion
+                                td= lote.hectareas
+                                td= lote.tipoCultivoId ? lote.tipoCultivoId.nombre : 'Sin cultivo'
+                                td.acciones
+                                    a.boton-editar(href="/web/ingenieros/" + tecnico._id + "/lotes/" + lote._id + "/observaciones") Nueva observación
+                                    a.boton-editar(href="/web/ingenieros/" + tecnico._id + "/lotes/" + lote._id + "/historial") Ver historial
+        else
+            p No tenés lotes asignados. Contactá al administrador.

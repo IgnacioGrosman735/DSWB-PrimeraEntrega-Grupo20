@@ -95,7 +95,7 @@ Para cargar los datos de ejemplo por primera vez, ejecutar con la API detenida y
 npm run importar
 ```
 
-El importador valida los cinco JSON, sus identificadores y relaciones, e inserta 27 documentos. Cancela si alguna colección ya contiene datos y no sobrescribe información. Si falla durante la escritura, revisar si quedó una carga parcial antes de repetirlo.
+El importador valida los cinco JSON, sus identificadores y relaciones. Crea las nueve colecciones si no existen (`usuarios`, `roles`, `usuarios_tiene_roles`, `productores`, `tecnicos`, `tiposCultivo`, `lotes`, `observaciones` y `tecnico_tiene_lotes`), prepara sus validaciones e índices e inserta los 27 documentos de ejemplo. No hace falta crearlas manualmente en Compass. Cancela si alguna de las cinco colecciones de datos de ejemplo ya contiene registros y no sobrescribe información. Si falla durante la escritura, revisar si quedó una carga parcial antes de repetirlo.
 
 También prepara los roles y crea el Admin de prueba: correo `admin@prueba.com`, contraseña `administrador123456789` y nombre `seba`. Usa el ID `1` para el usuario y su relación con el rol Admin; guarda la contraseña mediante hash y salt. Si la cuenta ya existe, conserva sus datos y contraseña. Si esos IDs o el correo pertenecen a otra cuenta o relación, cancela la carga.
 

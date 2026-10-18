@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 const cerrarDB = require("../config/cerrarDB");
 const conectarDB = require("../config/database");
 const Productor = require("../models/Productor");
@@ -10,6 +11,7 @@ const Observacion = require("../models/Observacion");
 const Usuario = require("../models/Usuario");
 const UsuarioTieneRol = require("../models/UsuarioTieneRol");
 const { prepararColeccionesAuth } = require("../config/coleccionesAuth");
+const { prepararColeccionesNegocio } = require("../config/coleccionesNegocio");
 
 async function crearAdminInicial() {
     // Cuenta inicial de prueba para la entrega. No reemplazar una cuenta existente.
@@ -79,13 +81,15 @@ const importar = async () => {
             }
         }
         await conectarDB();
-        await require("../config/coleccionesNegocio").prepararColeccionesNegocio(require("mongoose").connection.db);
         for (const { Modelo } of cargas) {
             if (await Modelo.findOne()) {
                 throw new Error("Importación cancelada: las cinco colecciones deben estar vacías");
             }
         }
-        await prepararColeccionesAuth(require("mongoose").connection.db);
+        const db = mongoose.connection.db;
+        await prepararColeccionesAuth(db);
+        await prepararColeccionesNegocio(db);
+        console.log("Colecciones de usuarios, roles, asignaciones y negocio preparadas");
         await crearAdminInicial();
         for (const { Modelo, documentos } of cargas) {
             for (const documento of documentos) {

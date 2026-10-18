@@ -649,6 +649,15 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
             await solicitud("PUT", "/lotes/" + id, { productorId: 1 }, 200);
             assert.equal((await solicitud("PUT", "/lotes/" + id, { productorId: null }, 200)).lote.productorId, null);
         }
+        const Asignacion = require("../models/TecnicoTieneLote");
+        await Promise.all([701, 702].map(id => solicitud("PUT", "/tecnicos/1/lotes/" + id, undefined, 200)));
+        const asignadas = await Asignacion.find({ tecnicoId: 1, loteId: { $in: [701, 702] } });
+        assert.equal(asignadas.length, 2);
+        assert.equal(new Set(asignadas.map(a => a._id)).size, 2);
+        assert.ok(asignadas.every(a => Number.isSafeInteger(a._id) && a._id > 0));
+        await solicitud("PUT", "/tecnicos/1/lotes/701", undefined, 200);
+        assert.equal(await Asignacion.countDocuments({ tecnicoId: 1, loteId: 701 }), 1);
+        for (const id of [701, 702]) await solicitud("DELETE", "/tecnicos/1/lotes/" + id, undefined, 200);
         const actual = { ...observacionValida, _id: 701, tipoCultivoId: 2 };
         delete actual.fecha;
         const fechaActual = () => new Intl.DateTimeFormat("en-CA", {

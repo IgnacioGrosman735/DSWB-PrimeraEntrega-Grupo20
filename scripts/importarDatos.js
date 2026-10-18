@@ -22,7 +22,7 @@ async function crearAdminInicial() {
         throw new Error("El ID 1 de usuarios_tiene_roles ya pertenece a otra relación");
     }
     if (!admin) {
-        const passwordSeguro = await Usuario.crearPasswordSeguro("sebastian123456789");
+        const passwordSeguro = await Usuario.crearPasswordSeguro("administrador123456789");
         admin = await Usuario.create({
             _id: 1, nombre: "seba", usuario: "admin@prueba.com",
             ...passwordSeguro, activo: true

@@ -30,12 +30,10 @@ document.querySelectorAll("[data-no-espacios]").forEach(campo => {
 document.querySelectorAll("[data-asignar]").forEach(boton => {
     boton.addEventListener("click", async () => {
         const persona = boton.dataset.persona === "" ? null : Number(boton.dataset.persona);
-        const campoId = boton.parentElement.querySelector('[data-id-asignacion]');
-        if (campoId && !campoId.reportValidity()) return;
         if (persona === null && !window.confirm("¿Quitar esta asignación? El lote se conservará.")) return;
         boton.disabled = true;
         try {
-            const datos = boton.dataset.campo ? { [boton.dataset.campo]: persona } : campoId ? { _id: Number(campoId.value) } : undefined;
+            const datos = boton.dataset.campo ? { [boton.dataset.campo]: persona } : undefined;
             await enviar(boton.dataset.asignar, boton.dataset.metodo || "PUT", datos);
             window.location.reload();
         } catch (error) {

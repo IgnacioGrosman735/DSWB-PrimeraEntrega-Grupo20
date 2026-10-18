@@ -30,9 +30,6 @@ html(lang="es")
                   td= lote.ubicacion
                   td= lote.hectareas
                   td.acciones
-                    if recurso === 'tecnicos' && grupo === 'Disponibles'
-                      label(for="asignacion-" + lote._id) ID de asignación
-                      input(type="number" id="asignacion-" + lote._id data-id-asignacion min="1" max="9007199254740991" step="1" required)
                     button(type="button" data-asignar=recurso === "tecnicos" ? "/tecnicos/" + persona._id + "/lotes/" + lote._id : "/lotes/" + lote._id data-metodo=recurso === "tecnicos" && grupo === "Asignados" ? "DELETE" : "PUT" data-campo=recurso === "tecnicos" ? undefined : campo data-persona=grupo === 'Asignados' ? '' : persona._id)= grupo === 'Asignados' ? 'Quitar asignación' : 'Asignar lote'
       else
         p No hay lotes en este grupo.

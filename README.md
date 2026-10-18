@@ -97,7 +97,7 @@ npm run importar
 
 El importador valida los cinco JSON, sus identificadores y relaciones, e inserta 27 documentos. Cancela si alguna colección ya contiene datos y no sobrescribe información. Si falla durante la escritura, revisar si quedó una carga parcial antes de repetirlo.
 
-También prepara los roles y crea el Admin de prueba: correo `admin@prueba.com`, contraseña `sebastian123456789` y nombre `seba`. Usa el ID `1` para el usuario y su relación con el rol Admin; guarda la contraseña mediante hash y salt. Si la cuenta ya existe, conserva sus datos y contraseña. Si esos IDs o el correo pertenecen a otra cuenta o relación, cancela la carga.
+También prepara los roles y crea el Admin de prueba: correo `admin@prueba.com`, contraseña `administrador123456789` y nombre `seba`. Usa el ID `1` para el usuario y su relación con el rol Admin; guarda la contraseña mediante hash y salt. Si la cuenta ya existe, conserva sus datos y contraseña. Si esos IDs o el correo pertenecen a otra cuenta o relación, cancela la carga.
 
 Una vez realizada la carga inicial, iniciar el servidor:
 
@@ -221,7 +221,7 @@ La base utiliza las siguientes colecciones. Las cinco primeras tienen datos de e
 
 `_id` es la clave primaria y debe ser un entero positivo seguro. Su índice garantiza la unicidad dentro de la colección. Durante la importación, el campo `id` de los JSON se guarda como `_id`.
 
-Los IDs de fichas y usuarios se ingresan manualmente como enteros positivos y únicos dentro de cada colección. No se utilizan contadores. Las altas de acceso reciben `cuentaId` (se guarda como usuarios._id), además del `_id` de la ficha. El backend usa el mismo `cuentaId` como `_id` de usuarios_tiene_roles; no se solicita en el formulario. Este flujo crea una relación de rol por usuario. La asignación de un ingeniero a un lote recibe su propio `_id`. Los roles iniciales conservan los IDs 1, 2 y 3. Los registros existentes no se renumeran.
+Los IDs de fichas y usuarios se ingresan manualmente como enteros positivos y únicos dentro de cada colección. No se utilizan contadores. Las altas de acceso reciben `cuentaId` (se guarda como usuarios._id), además del `_id` de la ficha. El backend usa el mismo `cuentaId` como `_id` de usuarios_tiene_roles; no se solicita en el formulario. Este flujo crea una relación de rol por usuario. El backend calcula el ID de cada nueva asignación de ingeniero a lote sumando uno al mayor ID existente (o usa 1 si no hay asignaciones), con reintentos ante inserciones simultáneas. Los roles iniciales conservan los IDs 1, 2 y 3. Los registros existentes no se renumeran.
 
 La API recibe y devuelve `_id`, la clave de MongoDB. Por ejemplo, `GET /productores/1` devuelve `{"_id":1,"nombre":"Gallo"}`. Las rutas conservan el parámetro `:id` numérico; los campos relacionados siguen llamándose `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId`.
 
@@ -332,7 +332,7 @@ Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `
 | POST | /tipos-cultivo | Ninguno | _id, nombre | 201, tipoCultivo | 400 datos o duplicado |
 | PUT | /tipos-cultivo/:id | ID de ruta | nombre | 200, tipoCultivo | 400 datos; 404 inexistente |
 | DELETE | /tipos-cultivo/:id | ID de ruta | No | 200, mensaje | 400 si está relacionado; 404 inexistente |
-| PUT | /tecnicos/:id/lotes/:loteId | IDs de técnico y lote | _id de asignación | 200, asignación | 400 IDs; 404 inexistente |
+| PUT | /tecnicos/:id/lotes/:loteId | IDs de técnico y lote | No | 200, asignación | 400 IDs; 404 inexistente; 409 reintentar |
 | DELETE | /tecnicos/:id/lotes/:loteId | IDs de técnico y lote | No | 200, desasignación | 400 IDs; 404 inexistente |
 | GET | / | Ninguno | No | 302, redirección al login | 500, error interno |
 | GET | /web/lotes | Ninguno | No | 200, HTML del listado Pug | 500, error interno |
@@ -465,7 +465,7 @@ L2 — PUT `/lotes/4`:
 }
 ```
 
-O1 — POST `/observaciones` (crear el técnico 13 con T1 y asignarlo al lote 1 mediante `PUT /tecnicos/13/lotes/1` con body `{ "_id": 1 }` (o un ID libre de asignación); usar el ID libre 7):
+O1 — POST `/observaciones` (crear el técnico 13 con T1 y asignarlo al lote 1 mediante `PUT /tecnicos/13/lotes/1` sin body; usar el ID libre 7):
 
 ```json
 {

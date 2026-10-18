@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const mongoose = require("mongoose");
+const cerrarDB = require("../config/cerrarDB");
 const conectarDB = require("../config/database");
 const Productor = require("../models/Productor");
 const Tecnico = require("../models/Tecnico");
@@ -51,6 +51,7 @@ const importar = async () => {
             }
         }
         await conectarDB();
+        await require("../config/coleccionesNegocio").prepararColeccionesNegocio(require("mongoose").connection.db);
         for (const { Modelo } of cargas) {
             if (await Modelo.findOne()) {
                 throw new Error("Importación cancelada: las cinco colecciones deben estar vacías");
@@ -67,7 +68,7 @@ const importar = async () => {
         console.error("Si falló durante la escritura, revisar la carga parcial antes de repetir.");
         process.exitCode = 1;
     } finally {
-        await mongoose.disconnect();
+        await cerrarDB();
     }
 };
 

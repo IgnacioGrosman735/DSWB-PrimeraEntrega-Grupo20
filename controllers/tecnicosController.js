@@ -1,5 +1,9 @@
 const Tecnico = require("../models/Tecnico");
 const Observacion = require("../models/Observacion");
+const Lote = require("../models/Lote");
+const TecnicoTieneLote = require("../models/TecnicoTieneLote");
+const { cuentaIngenieroValida } = require("../services/cuentaIngeniero");
+const { crearAcceso } = require("../services/crearAcceso");
 
 const datosValidos = (datos) => {
     return Number.isSafeInteger(datos._id) && datos._id > 0 &&
@@ -40,7 +44,7 @@ const crearTecnico = async (req, res, next) => {
         if (await Tecnico.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un técnico con ese ID" });
         }
-        const creado = await new Tecnico({ _id: id, nombre }).save();
+        const creado = await crearAcceso(new Tecnico({ _id: id, nombre }), "Ingeniero", req.body);
         res.status(201).json({ mensaje: "Técnico creado", tecnico: creado });
     } catch (error) {
         next(error);
@@ -62,6 +66,20 @@ const actualizarTecnico = async (req, res, next) => {
         if (!datosValidos(actualizado) || (datos._id !== undefined && datos._id !== id)) {
             return res.status(400).json({ mensaje: "Se requiere un nombre no vacío; el ID no se puede cambiar" });
         }
+        if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
+            if (datos.usuarioId) return res.status(400).json({ mensaje: "Elegí una cuenta existente o creá una nueva, no ambas" });
+            tecnico.nombre = actualizado.nombre;
+            await crearAcceso(tecnico, "Ingeniero", datos);
+            return res.json({ mensaje: "Técnico y acceso actualizados", tecnico });
+
+        }
+        if (datos.usuarioId !== undefined) {
+            const usuarioId = datos.usuarioId === "" ? null : datos.usuarioId;
+            if (!await cuentaIngenieroValida(usuarioId)) {
+                return res.status(400).json({ mensaje: "Seleccioná una cuenta activa con rol Ingeniero" });
+            }
+            tecnico.usuarioId = usuarioId || undefined;
+        }
         tecnico.nombre = actualizado.nombre;
         await tecnico.save();
         res.json({ mensaje: "Técnico actualizado", tecnico });
@@ -82,6 +100,9 @@ const eliminarTecnico = async (req, res, next) => {
         if (await Observacion.findOne({ tecnicoId: id })) {
             return res.status(400).json({ mensaje: "No se puede eliminar el técnico porque posee observaciones registradas" });
         }
+        if (await TecnicoTieneLote.exists({ tecnicoId: id })) {
+            return res.status(400).json({ mensaje: "Primero desasigná los lotes del ingeniero" });
+        }
         await Tecnico.deleteOne({ _id: id });
         res.json({ mensaje: "Técnico eliminado" });
     } catch (error) {
@@ -91,7 +112,7 @@ const eliminarTecnico = async (req, res, next) => {
 
 const mostrarTecnicos = async (req, res, next) => {
     try {
-        res.render("tecnicos", { tecnicos: await Tecnico.find() });
+        res.render("tecnicos", { tecnicos: await Tecnico.find(), lotes: await Lote.find().sort({ _id: 1 }), asignaciones: await TecnicoTieneLote.find() });
     } catch (error) {
         next(error);
     }

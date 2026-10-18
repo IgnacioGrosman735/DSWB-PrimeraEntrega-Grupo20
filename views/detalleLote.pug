@@ -5,9 +5,10 @@ html(lang="es")
     meta(name="viewport" content="width=device-width, initial-scale=1")
     title Agrotec - Lote #{lote._id}
   body
+    include includes/navegacionAbm
     h1 Lote #{lote._id}
     p Cultivo: #{tipoCultivo.nombre}
-    p Productor: #{productor.nombre}
+    a(href="/web/lotes/" + lote._id + "/editar") Editar
     p Ubicación: #{lote.ubicacion}
     p Hectáreas: #{lote.hectareas}
     a(href="/web/lotes") Volver al listado

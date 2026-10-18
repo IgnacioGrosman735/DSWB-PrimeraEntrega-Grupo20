@@ -8,6 +8,9 @@ const {
 } = require("../controllers/tecnicosController");
 
 const router = express.Router();
+const { cambiarAsignacion } = require("../controllers/asignacionesController");
+router.put("/:id/lotes/:loteId", cambiarAsignacion);
+router.delete("/:id/lotes/:loteId", cambiarAsignacion);
 
 router.get("/", obtenerTecnicos);
 router.get("/:id", obtenerTecnicoPorId);

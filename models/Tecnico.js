@@ -6,6 +6,7 @@ const esquema = new mongoose.Schema({
         required: true,
         validate: valor => Number.isSafeInteger(valor) && valor > 0
     },
+    usuarioId: { type: Number, ref: "Usuario", validate: valor => valor === undefined || (Number.isSafeInteger(valor) && valor > 0) },
     nombre: {
         type: String,
         required: true,
@@ -14,5 +15,7 @@ const esquema = new mongoose.Schema({
 }, {
     versionKey: false
 });
+
+esquema.index({ usuarioId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Tecnico", esquema, "tecnicos");

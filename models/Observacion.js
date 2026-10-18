@@ -36,6 +36,12 @@ const esquema = new mongoose.Schema({
         required: true,
         validate: valor => valor.trim() !== ""
     },
+    estado: {
+        type: String,
+        required: true,
+        enum: ["Pendiente", "Cargada"],
+        default: "Cargada"
+    },
     observaciones: {
         type: String,
         required: true,

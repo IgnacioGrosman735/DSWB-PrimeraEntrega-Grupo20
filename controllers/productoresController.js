@@ -1,5 +1,6 @@
 const Productor = require("../models/Productor");
 const Lote = require("../models/Lote");
+const { crearAcceso } = require("../services/crearAcceso");
 
 const datosValidos = (datos) => {
     return Number.isSafeInteger(datos._id) && datos._id > 0 &&
@@ -40,7 +41,7 @@ const crearProductor = async (req, res, next) => {
         if (await Productor.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un productor con ese ID" });
         }
-        const creado = await new Productor({ _id: id, nombre }).save();
+        const creado = await crearAcceso(new Productor({ _id: id, nombre }), "Cliente", req.body);
         res.status(201).json({ mensaje: "Productor creado", productor: creado });
     } catch (error) {
         next(error);
@@ -63,6 +64,10 @@ const actualizarProductor = async (req, res, next) => {
             return res.status(400).json({ mensaje: "Se requiere un nombre no vacío; el ID no se puede cambiar" });
         }
         productor.nombre = actualizado.nombre;
+        if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
+            await crearAcceso(productor, "Cliente", datos);
+            return res.json({ mensaje: "Cliente y acceso actualizados", productor });
+        }
         await productor.save();
         res.json({ mensaje: "Productor actualizado", productor });
     } catch (error) {

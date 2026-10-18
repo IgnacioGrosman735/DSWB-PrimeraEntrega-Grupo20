@@ -1,6 +1,7 @@
 const Productor = require("../models/Productor");
 const TipoCultivo = require("../models/TipoCultivo");
 const Lote = require("../models/Lote");
+const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const Observacion = require("../models/Observacion");
 
 const alertaValida = nivel => ["Normal", "Atención", "Crítico"].includes(nivel);
@@ -9,9 +10,9 @@ const datosValidos = (datos) => {
     return (
         Number.isSafeInteger(datos._id) && datos._id > 0 &&
         Number.isSafeInteger(datos.tipoCultivoId) && datos.tipoCultivoId > 0 &&
-        Number.isSafeInteger(datos.productorId) && datos.productorId > 0 &&
+        (datos.productorId == null || (Number.isSafeInteger(datos.productorId) && datos.productorId > 0)) &&
         typeof datos.ubicacion === "string" && datos.ubicacion.trim() !== "" &&
-        typeof datos.hectareas === "number" && Number.isFinite(datos.hectareas) && datos.hectareas > 0
+        typeof datos.hectareas === "number" && Number.isFinite(datos.hectareas) && datos.hectareas >= 0.000001
     );
 };
 
@@ -55,8 +56,9 @@ const obtenerLotePorId = async (req, res, next) => {
 
 const crearLote = async (req, res, next) => {
     try {
-        const { _id: id, hectareas, tipoCultivoId, productorId, ubicacion } = req.body || {};
+        const { _id: id, hectareas, tipoCultivoId, productorId = null, ubicacion } = req.body || {};
 
+        if (req.body?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
         const nuevoLote = { _id: id, hectareas, tipoCultivoId, productorId, ubicacion };
 
         if (!datosValidos(nuevoLote)) {
@@ -67,14 +69,15 @@ const crearLote = async (req, res, next) => {
         if (await Lote.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un lote con ese ID" });
         }
-        if (!await Productor.findById(productorId)) {
+        if (productorId != null && !await Productor.findById(productorId)) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
         if (!await TipoCultivo.findById(tipoCultivoId)) {
             return res.status(400).json({ mensaje: "El tipo de cultivo no existe" });
         }
 
-        const creado = await new Lote({ _id: id, hectareas, tipoCultivoId, productorId, ubicacion }).save();
+
+        const creado = await new Lote(nuevoLote).save();
 
         res.status(201).json({
             mensaje: "Lote creado",
@@ -101,6 +104,7 @@ const actualizarLote = async (req, res, next) => {
         }
 
         const datos = req.body;
+        if (datos?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
         if (!datos || Array.isArray(datos) || typeof datos !== "object" ||
             !["hectareas", "tipoCultivoId", "productorId", "ubicacion"].some(campo => datos[campo] !== undefined) ||
             (datos._id !== undefined && datos._id !== id)) {
@@ -117,7 +121,7 @@ const actualizarLote = async (req, res, next) => {
         if (!datosValidos(actualizado)) {
             return res.status(400).json({ mensaje: "Los datos del lote son inválidos" });
         }
-        if (!await Productor.findById(actualizado.productorId)) {
+        if (actualizado.productorId != null && !await Productor.findById(actualizado.productorId)) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
         if (!await TipoCultivo.findById(actualizado.tipoCultivoId)) {
@@ -155,6 +159,9 @@ const eliminarLote = async (req, res, next) => {
             });
         }
 
+        if (await TecnicoTieneLote.exists({ loteId: id })) {
+            return res.status(400).json({ mensaje: "Primero quitá las asignaciones de ingenieros del lote" });
+        }
         await Lote.deleteOne({ _id: id });
 
         res.json({
@@ -167,7 +174,7 @@ const eliminarLote = async (req, res, next) => {
 
 const mostrarLotes = async (req, res, next) => {
     try {
-        res.render("lotes", { lotes: await Lote.find() });
+        res.render("lotes", { lotes: await Lote.find().populate("tipoCultivoId").sort({ _id: 1 }) });
     } catch (error) {
         next(error);
     }

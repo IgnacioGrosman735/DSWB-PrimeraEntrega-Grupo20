@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "importar": "node scripts/importarDatos.js"
+    "importar": "node scripts/importarDatos.js",
+    "auth:preparar": "node scripts/prepararAuth.js"
   },
   "keywords": [],
   "author": "",

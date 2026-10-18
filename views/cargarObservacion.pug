@@ -1,0 +1,36 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title Observaciones del lote #{lote._id}
+    include includes/estilosTabla
+  body
+    include includes/navegacionAbm
+    h1 Observaciones del lote #{lote._id}
+    p Ubicación: #{lote.ubicacion}
+    p Ingeniero que registra: #{tecnico.nombre}
+    p Cultivo actual: #{lote.tipoCultivoId.nombre}
+    a(href="/web/ingenieros/" + tecnico._id + "/lotes") Volver a mis lotes
+    h2 Registrar observación
+    form#formulario-abm(data-api="/observaciones" data-metodo="POST" data-destino="/web/ingenieros/" + tecnico._id + "/lotes/" + lote._id + "/historial")
+      input(type="hidden" name="loteId" value=lote._id)
+      input(type="hidden" name="tecnicoId" value=tecnico._id)
+      input(type="hidden" name="tipoCultivoId" value=lote.tipoCultivoId._id)
+      p
+        label(for="_id") ID de observación (entero positivo y único)
+        input#_id(type="number" name="_id" min="1" max="9007199254740991" step="1" required)
+      p
+        label(for="estadoCultivo") Estado del cultivo
+        input#estadoCultivo(name="estadoCultivo" required pattern=".*\\S.*" title="Describí el estado del cultivo; no solo espacios")
+      p
+        label(for="observaciones") Observaciones
+        textarea#observaciones(name="observaciones" rows="5" required data-no-espacios)
+      p
+        label(for="nivelAlerta") Nivel de alerta
+        select#nivelAlerta(name="nivelAlerta" required)
+          option(value="") Seleccionar nivel
+          each nivel in ['Normal', 'Atención', 'Crítico']
+            option(value=nivel)= nivel
+      button(type="submit") Registrar observación
+    noscript Habilitá JavaScript para enviar el formulario.

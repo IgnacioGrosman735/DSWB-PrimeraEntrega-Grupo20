@@ -1,0 +1,42 @@
+doctype html
+html(lang="es")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    title Clientes
+    include includes/estilosTabla
+  body
+    include includes/navegacionAbm
+    h1 Clientes
+    a(href="/web/productores/nuevo") Crear cliente
+    p Cada registro puede tener varios lotes. Usá Administrar lotes para asignarlos o quitarlos.
+    if productores.length
+      .tabla-contenedor
+        table.tabla-abm
+          caption Clientes y sus lotes asignados
+          thead
+            tr
+              th(scope="col") ID
+              th(scope="col") Nombre
+              th(scope="col") Lotes asignados
+              th.acciones(scope="col") Acciones
+          tbody
+            each productor in productores
+              - const asignados = lotes.filter(lote => lote.productorId === productor._id)
+              tr
+                td= productor._id
+                td= productor.nombre
+                td
+                  if asignados.length
+                    ul.lotes-asignados
+                      each lote in asignados
+                        li
+                          a(href="/web/lotes/" + lote._id) Lote #{lote._id} — #{lote.ubicacion}
+                  else
+                    span Sin lotes asignados
+                td.acciones
+                  a.boton-editar(href="/web/productores/" + productor._id + "/lotes") Administrar lotes
+                  a.boton-editar(href="/web/productores/" + productor._id + "/editar") Editar
+                  button(type="button" data-eliminar="/productores/" + productor._id) Eliminar cliente
+    else
+      p No hay registros.

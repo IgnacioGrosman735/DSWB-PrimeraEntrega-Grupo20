@@ -5,10 +5,23 @@ const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const { cuentaIngenieroValida } = require("../services/cuentaIngeniero");
 const { crearAcceso } = require("../services/crearAcceso");
 
-const datosValidos = (datos) => {
-    return Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        typeof datos.nombre === "string" && datos.nombre.trim() !== "";
+// Notas - Andrea | Inicio | Carga de técnico antes de validar su actualización
+const cargarTecnico = async (req, res, next) => {
+    try {
+        // Notas - Andrea | Inicio | ID validado por middleware
+        const id = Number(req.params.id);
+        // Notas - Andrea | Fin | ID validado por middleware
+        const tecnico = await Tecnico.findById(id);
+        if (!tecnico) {
+            return res.status(404).json({ mensaje: "El técnico no existe" });
+        }
+        res.locals.tecnico = tecnico;
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
+// Notas - Andrea | Fin | Carga de técnico antes de validar su actualización
 
 const obtenerTecnicos = async (req, res, next) => {
     try {
@@ -20,10 +33,9 @@ const obtenerTecnicos = async (req, res, next) => {
 
 const obtenerTecnicoPorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
@@ -36,11 +48,9 @@ const obtenerTecnicoPorId = async (req, res, next) => {
 
 const crearTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | Datos de creación validados por middleware
         const { _id: id, nombre } = req.body || {};
-        const tecnico = { _id: id, nombre };
-        if (!datosValidos(tecnico)) {
-            return res.status(400).json({ mensaje: "Se requiere un ID entero positivo y un nombre no vacío" });
-        }
+        // Notas - Andrea | Fin | Datos de creación validados por middleware
         if (await Tecnico.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un técnico con ese ID" });
         }
@@ -51,24 +61,15 @@ const crearTecnico = async (req, res, next) => {
     }
 };
 
+// Notas - Andrea | Inicio | Actualización de técnico cargado y validado
 const actualizarTecnico = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
-        const tecnico = await Tecnico.findById(id);
-        if (!tecnico) {
-            return res.status(404).json({ mensaje: "El técnico no existe" });
-        }
+        const tecnico = res.locals.tecnico;
         const datos = req.body || {};
-        const actualizado = { _id: id, nombre: datos.nombre };
-        if (!datosValidos(actualizado) || (datos._id !== undefined && datos._id !== id)) {
-            return res.status(400).json({ mensaje: "Se requiere un nombre no vacío; el ID no se puede cambiar" });
-        }
+        tecnico.nombre = datos.nombre;
         if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
             if (datos.usuarioId) return res.status(400).json({ mensaje: "Elegí una cuenta existente o creá una nueva, no ambas" });
-            tecnico.nombre = actualizado.nombre;
+            tecnico.nombre = datos.nombre;
             await crearAcceso(tecnico, "Ingeniero", datos);
             return res.json({ mensaje: "Técnico y acceso actualizados", tecnico });
 
@@ -80,20 +81,20 @@ const actualizarTecnico = async (req, res, next) => {
             }
             tecnico.usuarioId = usuarioId || undefined;
         }
-        tecnico.nombre = actualizado.nombre;
+        tecnico.nombre = datos.nombre;
         await tecnico.save();
         res.json({ mensaje: "Técnico actualizado", tecnico });
     } catch (error) {
         next(error);
     }
 };
+// Notas - Andrea | Fin | Actualización de técnico cargado y validado
 
 const eliminarTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         if (!await Tecnico.findById(id)) {
             return res.status(404).json({ mensaje: "El técnico no existe" });
         }
@@ -120,10 +121,9 @@ const mostrarTecnicos = async (req, res, next) => {
 
 const mostrarTecnico = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).render("error", { mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const tecnico = await Tecnico.findById(id);
         if (!tecnico) {
             return res.status(404).render("error", { mensaje: "El técnico no existe" });
@@ -138,6 +138,9 @@ module.exports = {
     obtenerTecnicos,
     obtenerTecnicoPorId,
     crearTecnico,
+    // Notas - Andrea | Inicio | Exportación de carga previa del técnico
+    cargarTecnico,
+    // Notas - Andrea | Fin | Exportación de carga previa del técnico
     actualizarTecnico,
     eliminarTecnico,
     mostrarTecnicos,

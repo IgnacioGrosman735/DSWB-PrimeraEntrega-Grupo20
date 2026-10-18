@@ -4,24 +4,27 @@ const Lote = require("../models/Lote");
 const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const Observacion = require("../models/Observacion");
 
-const alertaValida = nivel => ["Normal", "Atención", "Crítico"].includes(nivel);
-
-const datosValidos = (datos) => {
-    return (
-        Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        Number.isSafeInteger(datos.tipoCultivoId) && datos.tipoCultivoId > 0 &&
-        (datos.productorId == null || (Number.isSafeInteger(datos.productorId) && datos.productorId > 0)) &&
-        typeof datos.ubicacion === "string" && datos.ubicacion.trim() !== "" &&
-        typeof datos.hectareas === "number" && Number.isFinite(datos.hectareas) && datos.hectareas >= 0.000001
-    );
+// Notas - Andrea | Inicio | Carga del lote antes de validar la actualización
+const cargarLote = async (req, res, next) => {
+    try {
+        const lote = await Lote.findById(Number(req.params.id));
+        if (!lote) {
+            return res.status(404).json({ mensaje: "Lote no encontrado" });
+        }
+        res.locals.lote = lote;
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
+// Notas - Andrea | Fin | Carga del lote antes de validar la actualización
 
 const obtenerLotes = async (req, res, next) => {
     try {
         if (req.query.alerta !== undefined) {
-            if (!alertaValida(req.query.alerta)) {
-                return res.status(400).json({ mensaje: "El nivel de alerta debe ser Normal, Atención o Crítico" });
-            }
+            // Notas - Andrea | Inicio | Filtro de alerta validado por middleware
+            // El filtro ya cumple los niveles admitidos antes de consultar el historial.
+            // Notas - Andrea | Fin | Filtro de alerta validado por middleware
             // Se considera todo el historial, sin repetir lotes.
             const observaciones = await Observacion.find({ nivelAlerta: req.query.alerta });
             const ids = observaciones.map(observacion => observacion.loteId);
@@ -35,10 +38,9 @@ const obtenerLotes = async (req, res, next) => {
 
 const obtenerLotePorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
 
         const lote = await Lote.findById(id);
 
@@ -57,15 +59,8 @@ const obtenerLotePorId = async (req, res, next) => {
 const crearLote = async (req, res, next) => {
     try {
         const { _id: id, hectareas, tipoCultivoId, productorId = null, ubicacion } = req.body || {};
-
         if (req.body?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
         const nuevoLote = { _id: id, hectareas, tipoCultivoId, productorId, ubicacion };
-
-        if (!datosValidos(nuevoLote)) {
-            return res.status(400).json({
-                mensaje: "Se requieren IDs enteros positivos, hectáreas numéricas mayores que cero y ubicación no vacía"
-            });
-        }
         if (await Lote.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un lote con ese ID" });
         }
@@ -90,37 +85,11 @@ const crearLote = async (req, res, next) => {
 
 const actualizarLote = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
-
-        const lote = await Lote.findById(id);
-
-        if (!lote) {
-            return res.status(404).json({
-                mensaje: "Lote no encontrado"
-            });
-        }
-
-        const datos = req.body;
-        if (datos?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
-        if (!datos || Array.isArray(datos) || typeof datos !== "object" ||
-            !["hectareas", "tipoCultivoId", "productorId", "ubicacion"].some(campo => datos[campo] !== undefined) ||
-            (datos._id !== undefined && datos._id !== id)) {
-            return res.status(400).json({ mensaje: "Envíe campos del lote para actualizar; el ID no se puede cambiar" });
-        }
-
-        const actualizado = {
-            _id: id,
-            hectareas: datos.hectareas !== undefined ? datos.hectareas : lote.hectareas,
-            tipoCultivoId: datos.tipoCultivoId !== undefined ? datos.tipoCultivoId : lote.tipoCultivoId,
-            productorId: datos.productorId !== undefined ? datos.productorId : lote.productorId,
-            ubicacion: datos.ubicacion !== undefined ? datos.ubicacion : lote.ubicacion
-        };
-        if (!datosValidos(actualizado)) {
-            return res.status(400).json({ mensaje: "Los datos del lote son inválidos" });
-        }
+        // Notas - Andrea | Inicio | Actualización parcial con lote cargado y datos validados
+        if (req.body?.tecnicoId !== undefined) return res.status(400).json({ mensaje: "Asigná los ingenieros desde su apartado" });
+        const lote = res.locals.lote;
+        const actualizado = res.locals.loteActualizado;
+        // Notas - Andrea | Fin | Actualización parcial con lote cargado y datos validados
         if (actualizado.productorId != null && !await Productor.findById(actualizado.productorId)) {
             return res.status(400).json({ mensaje: "El productor no existe" });
         }
@@ -142,10 +111,9 @@ const actualizarLote = async (req, res, next) => {
 
 const eliminarLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
 
         if (!await Lote.findById(id)) {
             return res.status(404).json({
@@ -182,10 +150,9 @@ const mostrarLotes = async (req, res, next) => {
 
 const mostrarLote = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).render("error", { mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const datos = await Lote.findById(id);
         if (!datos) {
             return res.status(404).render("error", { mensaje: "Lote no encontrado" });
@@ -200,10 +167,9 @@ const mostrarLote = async (req, res, next) => {
 
 const obtenerHistorial = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         if (!await Lote.findById(id)) {
             return res.status(404).json({ mensaje: "Lote no encontrado" });
         }
@@ -216,6 +182,9 @@ const obtenerHistorial = async (req, res, next) => {
 module.exports = {
     obtenerLotes,
     obtenerLotePorId,
+    // Notas - Andrea | Inicio | Carga de lote disponible para las rutas de actualización
+    cargarLote,
+    // Notas - Andrea | Fin | Carga de lote disponible para las rutas de actualización
     crearLote,
     actualizarLote,
     eliminarLote,

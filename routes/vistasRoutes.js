@@ -25,9 +25,13 @@ router.get("/productores", async (req, res, next) => {
     } catch (error) { next(error); }
 });
 
+// Notas - Andrea | Inicio | Validación de IDs con respuesta HTML en vistas
+const { validarId } = require("../middleware/validaciones/parametros");
+
 router.get("/lotes", mostrarLotes);
-router.get("/lotes/:id", mostrarLote);
+router.get("/lotes/:id", validarId, mostrarLote);
 router.get("/tecnicos", mostrarTecnicos);
-router.get("/tecnicos/:id", mostrarTecnico);
+router.get("/tecnicos/:id", validarId, mostrarTecnico);
+// Notas - Andrea | Fin | Validación de IDs con respuesta HTML en vistas
 
 module.exports = router;

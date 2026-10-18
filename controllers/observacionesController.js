@@ -5,35 +5,16 @@ const Observacion = require("../models/Observacion");
 const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const { cuentaIngenieroValida } = require("../services/cuentaIngeniero");
 
-const alertaValida = nivel => ["Normal", "Atención", "Crítico"].includes(nivel);
-
-const datosValidos = (datos) => {
-    if (typeof datos.fecha !== "string") {
-        return false;
-    }
-
-    const fecha = new Date(datos.fecha);
-
-    return (
-        Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        Number.isSafeInteger(datos.loteId) && datos.loteId > 0 &&
-        Number.isSafeInteger(datos.tecnicoId) && datos.tecnicoId > 0 &&
-        Number.isSafeInteger(datos.tipoCultivoId) && datos.tipoCultivoId > 0 &&
-        /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) &&
-        !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === datos.fecha &&
-        typeof datos.estadoCultivo === "string" && datos.estadoCultivo.trim() !== "" &&
-        typeof datos.observaciones === "string" && datos.observaciones.trim() !== "" &&
-        alertaValida(datos.nivelAlerta)
-    );
-};
+// Notas - Andrea | Inicio | Validaciones de entrada de observaciones trasladadas a middleware
+// middleware/validaciones/observaciones.js comprueba IDs, fecha, textos y nivel de alerta.
+// Notas - Andrea | Fin | Validaciones de entrada de observaciones trasladadas a middleware
 
 const obtenerObservaciones = async (req, res, next) => {
     try {
         if (req.query.tecnicoId !== undefined) {
+            // Notas - Andrea | Inicio | Filtro de técnico validado por middleware
             const id = Number(req.query.tecnicoId);
-            if (typeof req.query.tecnicoId !== "string" || !Number.isSafeInteger(id) || id <= 0) {
-                return res.status(400).json({ mensaje: "tecnicoId debe ser un entero positivo" });
-            }
+            // Notas - Andrea | Fin | Filtro de técnico validado por middleware
             if (!await Tecnico.findById(id)) {
                 return res.status(404).json({ mensaje: "El técnico no existe" });
             }
@@ -47,10 +28,9 @@ const obtenerObservaciones = async (req, res, next) => {
 
 const obtenerObservacionPorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const observacion = await Observacion.findById(id);
         if (!observacion) {
             return res.status(404).json({ mensaje: "La observación no existe" });
@@ -63,23 +43,14 @@ const obtenerObservacionPorId = async (req, res, next) => {
 
 const crearObservacion = async (req, res, next) => {
     try {
+        // El middleware valida la fecha si se envía; el formulario puede omitirla.
         const { _id: id, loteId, tecnicoId, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta } = req.body || {};
-        if (req.body?.estado !== undefined && !["Pendiente", "Cargada"].includes(req.body.estado)) {
-            return res.status(400).json({ mensaje: "El estado debe ser Pendiente o Cargada" });
-        }
-        const fecha = new Intl.DateTimeFormat("en-CA", {
-            timeZone: "America/Argentina/Buenos_Aires",
-            year: "numeric", month: "2-digit", day: "2-digit"
-        }).format(new Date());
-        if (!alertaValida(nivelAlerta)) {
-            return res.status(400).json({ mensaje: "El nivel de alerta debe ser Normal, Atención o Crítico" });
-        }
-        const observacion = { _id: id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta };
-        if (!datosValidos(observacion)) {
-            return res.status(400).json({
-                mensaje: "Se requieren IDs enteros positivos, estado del cultivo y texto de observaciones no vacíos"
-            });
-        }
+        const fecha = req.body.fecha === undefined
+            ? new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/Argentina/Buenos_Aires",
+                year: "numeric", month: "2-digit", day: "2-digit"
+            }).format(new Date())
+            : req.body.fecha;
         if (await Observacion.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe una observación con ese ID" });
         }

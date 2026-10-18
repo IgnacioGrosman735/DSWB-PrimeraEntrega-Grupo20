@@ -2,10 +2,20 @@ const Productor = require("../models/Productor");
 const Lote = require("../models/Lote");
 const { crearAcceso } = require("../services/crearAcceso");
 
-const datosValidos = (datos) => {
-    return Number.isSafeInteger(datos._id) && datos._id > 0 &&
-        typeof datos.nombre === "string" && datos.nombre.trim() !== "";
+// Notas - Andrea | Inicio | Cargar productor antes de validar la actualización
+const cargarProductor = async (req, res, next) => {
+    try {
+        const productor = await Productor.findById(Number(req.params.id));
+        if (!productor) {
+            return res.status(404).json({ mensaje: "El productor no existe" });
+        }
+        res.locals.productor = productor;
+        next();
+    } catch (error) {
+        next(error);
+    }
 };
+// Notas - Andrea | Fin | Cargar productor antes de validar la actualización
 
 const obtenerProductores = async (req, res, next) => {
     try {
@@ -17,10 +27,9 @@ const obtenerProductores = async (req, res, next) => {
 
 const obtenerProductorPorId = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         const productor = await Productor.findById(id);
         if (!productor) {
             return res.status(404).json({ mensaje: "El productor no existe" });
@@ -31,13 +40,10 @@ const obtenerProductorPorId = async (req, res, next) => {
     }
 };
 
+// Notas - Andrea | Inicio | Crear productor con entrada validada por middleware
 const crearProductor = async (req, res, next) => {
     try {
         const { _id: id, nombre } = req.body || {};
-        const productor = { _id: id, nombre };
-        if (!datosValidos(productor)) {
-            return res.status(400).json({ mensaje: "Se requiere un ID entero positivo y un nombre no vacío" });
-        }
         if (await Productor.findById(id)) {
             return res.status(400).json({ mensaje: "Ya existe un productor con ese ID" });
         }
@@ -47,23 +53,14 @@ const crearProductor = async (req, res, next) => {
         next(error);
     }
 };
+// Notas - Andrea | Fin | Crear productor con entrada validada por middleware
 
+// Notas - Andrea | Inicio | Actualizar productor cargado con entrada validada
 const actualizarProductor = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
-        const productor = await Productor.findById(id);
-        if (!productor) {
-            return res.status(404).json({ mensaje: "El productor no existe" });
-        }
+        const productor = res.locals.productor;
         const datos = req.body || {};
-        const actualizado = { _id: id, nombre: datos.nombre };
-        if (!datosValidos(actualizado) || (datos._id !== undefined && datos._id !== id)) {
-            return res.status(400).json({ mensaje: "Se requiere un nombre no vacío; el ID no se puede cambiar" });
-        }
-        productor.nombre = actualizado.nombre;
+        productor.nombre = datos.nombre;
         if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
             await crearAcceso(productor, "Cliente", datos);
             return res.json({ mensaje: "Cliente y acceso actualizados", productor });
@@ -74,13 +71,13 @@ const actualizarProductor = async (req, res, next) => {
         next(error);
     }
 };
+// Notas - Andrea | Fin | Actualizar productor cargado con entrada validada
 
 const eliminarProductor = async (req, res, next) => {
     try {
+        // Notas - Andrea | Inicio | ID validado por middleware
         const id = Number(req.params.id);
-        if (!Number.isSafeInteger(id) || id <= 0) {
-            return res.status(400).json({ mensaje: "El ID debe ser un entero positivo" });
-        }
+        // Notas - Andrea | Fin | ID validado por middleware
         if (!await Productor.findById(id)) {
             return res.status(404).json({ mensaje: "El productor no existe" });
         }
@@ -95,6 +92,9 @@ const eliminarProductor = async (req, res, next) => {
 };
 
 module.exports = {
+    // Notas - Andrea | Inicio | Exportar la carga previa de productores
+    cargarProductor,
+    // Notas - Andrea | Fin | Exportar la carga previa de productores
     obtenerProductores,
     obtenerProductorPorId,
     crearProductor,

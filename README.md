@@ -19,7 +19,7 @@ Actualmente administra productores, técnicos y lotes, registra observaciones y 
 
 El ingreso se realiza en `/login` con correo y contraseña. El campo `usuario` guarda el correo único y `nombre` el nombre para mostrar. Los roles son `1 = Admin`, `2 = Ingeniero` y `3 = Cliente`; no hay registro público ni ABM de roles.
 
-- **Admin:** administra lotes, cultivos, clientes e ingenieros. Al crear un cliente o ingeniero ingresa los IDs de ficha, usuario y relación de rol, nombre, correo y contraseña; el backend crea la cuenta, asigna el rol y vincula la ficha mediante `usuarioId`. La cuenta Admin se prepara previamente en la base con hash, salt y rol.
+- **Admin:** administra lotes, cultivos, clientes e ingenieros. Al crear un cliente o ingeniero ingresa los IDs de ficha y usuario, nombre, correo y contraseña; el backend crea la cuenta, asigna el rol y vincula la ficha mediante `usuarioId`. La importación crea la cuenta Admin con hash, salt y rol.
 - **Ingeniero:** consulta sus lotes asignados, registra observaciones y ve su propio historial por lote. La ficha técnica debe estar vinculada a una cuenta activa con rol Ingeniero.
 - **Cliente:** puede iniciar sesión; los reportes de su perfil quedan pendientes.
 
@@ -97,6 +97,8 @@ npm run importar
 
 El importador valida los cinco JSON, sus identificadores y relaciones, e inserta 27 documentos. Cancela si alguna colección ya contiene datos y no sobrescribe información. Si falla durante la escritura, revisar si quedó una carga parcial antes de repetirlo.
 
+También prepara los roles y crea el Admin de prueba: correo `admin@prueba.com`, contraseña `sebastian123456789` y nombre `seba`. Usa el ID `1` para el usuario y su relación con el rol Admin; guarda la contraseña mediante hash y salt. Si la cuenta ya existe, conserva sus datos y contraseña. Si esos IDs o el correo pertenecen a otra cuenta o relación, cancela la carga.
+
 Una vez realizada la carga inicial, iniciar el servidor:
 
 ```powershell
@@ -113,7 +115,7 @@ El servidor conecta a MongoDB y prepara validadores, índices y roles antes de a
 | `npm install` | Instala las dependencias del proyecto. |
 | `npm start` | Conecta a MongoDB e inicia Express. |
 | `npm run dev` | Ejecuta `node --watch index.js` y reinicia ante cambios en el código. |
-| `npm run importar` | Carga los datos de ejemplo en las cinco colecciones vacías. |
+| `npm run importar` | Carga los datos de ejemplo en las cinco colecciones vacías y crea el Admin inicial. |
 | `npm run auth:preparar` | Opcional: prepara colecciones de autenticación y roles sin iniciar Express; también se preparan al arrancar. |
 | `npm test` | Ejecuta `node --test` con las pruebas HTTP y MongoDB de `tests/api.test.js`. |
 <!-- Notas - Andrea | Fin | Comandos de ejecución y pruebas -->
@@ -219,7 +221,7 @@ La base utiliza las siguientes colecciones. Las cinco primeras tienen datos de e
 
 `_id` es la clave primaria y debe ser un entero positivo seguro. Su índice garantiza la unicidad dentro de la colección. Durante la importación, el campo `id` de los JSON se guarda como `_id`.
 
-Todos los IDs se ingresan manualmente como enteros positivos y únicos dentro de cada colección. No se utilizan contadores. Las altas de acceso reciben `cuentaId` (se guarda como usuarios._id) y `relacionRolId` (se guarda como usuarios_tiene_roles._id), además del `_id` de la ficha. La asignación de un ingeniero a un lote recibe su propio `_id`. Los roles iniciales conservan los IDs 1, 2 y 3. Los registros existentes no se renumeran.
+Los IDs de fichas y usuarios se ingresan manualmente como enteros positivos y únicos dentro de cada colección. No se utilizan contadores. Las altas de acceso reciben `cuentaId` (se guarda como usuarios._id), además del `_id` de la ficha. El backend usa el mismo `cuentaId` como `_id` de usuarios_tiene_roles; no se solicita en el formulario. Este flujo crea una relación de rol por usuario. La asignación de un ingeniero a un lote recibe su propio `_id`. Los roles iniciales conservan los IDs 1, 2 y 3. Los registros existentes no se renumeran.
 
 La API recibe y devuelve `_id`, la clave de MongoDB. Por ejemplo, `GET /productores/1` devuelve `{"_id":1,"nombre":"Gallo"}`. Las rutas conservan el parámetro `:id` numérico; los campos relacionados siguen llamándose `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId`.
 
@@ -229,9 +231,9 @@ Los campos `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId` guardan refere
 
 | Recurso | Campos |
 | --- | --- |
-| Productor | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId y relacionRolId |
+| Productor | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId |
 | Lote | _id, hectareas, tipoCultivoId, productorId, ubicacion |
-| Técnico | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId y relacionRolId |
+| Técnico | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId |
 | Tipo de cultivo | _id, nombre |
 | Observación | _id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta, estado |
 
@@ -277,8 +279,8 @@ Todos los campos de la siguiente tabla son obligatorios al crear el recurso:
 
 | Recurso | Campos obligatorios en POST | Campos de PUT |
 | --- | --- | --- |
-| Productor | `_id`, `nombre`, `usuario`, `password`, `cuentaId`, `relacionRolId` | `nombre` obligatorio. |
-| Técnico | `_id`, `nombre`, `usuario`, `password`, `cuentaId`, `relacionRolId` | `nombre` obligatorio. |
+| Productor | `_id`, `nombre`, `usuario`, `password`, `cuentaId` | `nombre` obligatorio. |
+| Técnico | `_id`, `nombre`, `usuario`, `password`, `cuentaId` | `nombre` obligatorio. |
 | Lote | `_id`, `hectareas`, `tipoCultivoId`, `ubicacion` | Al menos uno de los cuatro campos distintos de `_id`; los omitidos se conservan. |
 | Observación | `_id`, `loteId`, `tecnicoId`, `tipoCultivoId`, `estadoCultivo`, `observaciones`, `nivelAlerta` | Sin ruta de actualización. |
 
@@ -291,7 +293,7 @@ Antes de incorporar esta rama a develop, actualizar los consumidores de la API y
 
 | Operación | Comportamiento acordado |
 | --- | --- |
-| POST /productores y /tecnicos | Requieren cuenta de acceso: usuario (correo), password, cuentaId y relacionRolId, además de _id y nombre. Las solicitudes antiguas con solo ID y nombre responden 400. |
+| POST /productores y /tecnicos | Requieren cuenta de acceso: usuario (correo), password, cuentaId, además de _id y nombre. Las solicitudes antiguas con solo ID y nombre responden 400. |
 | POST y PUT /lotes | Admiten cliente existente o sin asignar. Omitir productorId en PUT conserva el anterior; null lo desasigna. |
 | POST /observaciones | Admite fecha enviada válida o fecha actual si se omite. Exige cuenta Ingeniero activa, asignación al lote y cultivo coincidente. |
 | PUT /tecnicos/:id/lotes/:loteId | Una nueva asignación requiere su _id manual en el cuerpo. |
@@ -407,7 +409,6 @@ P1 — POST `/productores`:
   "_id": 4,
   "nombre": "Productor de demostración",
   "cuentaId": 2,
-  "relacionRolId": 2,
   "usuario": "cliente@ejemplo.com",
   "password": "ClaveDePrueba123456"
 }
@@ -428,7 +429,6 @@ T1 — POST `/tecnicos`:
   "_id": 13,
   "nombre": "Técnico de demostración",
   "cuentaId": 3,
-  "relacionRolId": 3,
   "usuario": "ingeniero@ejemplo.com",
   "password": "ClaveDePrueba123456"
 }

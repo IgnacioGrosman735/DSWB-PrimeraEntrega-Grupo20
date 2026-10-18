@@ -7,6 +7,34 @@ const Tecnico = require("../models/Tecnico");
 const TipoCultivo = require("../models/TipoCultivo");
 const Lote = require("../models/Lote");
 const Observacion = require("../models/Observacion");
+const Usuario = require("../models/Usuario");
+const UsuarioTieneRol = require("../models/UsuarioTieneRol");
+const { prepararColeccionesAuth } = require("../config/coleccionesAuth");
+
+async function crearAdminInicial() {
+    // Cuenta inicial de prueba para la entrega. No reemplazar una cuenta existente.
+    let admin = await Usuario.findOne({ $or: [{ _id: 1 }, { usuario: "admin@prueba.com" }] });
+    if (admin && (admin._id !== 1 || admin.usuario !== "admin@prueba.com")) {
+        throw new Error("El ID 1 o el correo del Admin ya pertenece a otra cuenta");
+    }
+    const relacion = await UsuarioTieneRol.findById(1);
+    if (relacion && (relacion.usuarioId !== 1 || relacion.rolId !== 1)) {
+        throw new Error("El ID 1 de usuarios_tiene_roles ya pertenece a otra relación");
+    }
+    if (!admin) {
+        const passwordSeguro = await Usuario.crearPasswordSeguro("sebastian123456789");
+        admin = await Usuario.create({
+            _id: 1, nombre: "seba", usuario: "admin@prueba.com",
+            ...passwordSeguro, activo: true
+        });
+        console.log("Usuario Admin inicial creado");
+    } else {
+        console.log("Usuario Admin existente conservado, sin cambiar su contraseña");
+    }
+    if (!await UsuarioTieneRol.findOne({ usuarioId: admin._id, rolId: 1 })) {
+        await UsuarioTieneRol.create({ _id: 1, usuarioId: admin._id, rolId: 1 });
+    }
+}
 
 const importar = async () => {
     try {
@@ -57,6 +85,8 @@ const importar = async () => {
                 throw new Error("Importación cancelada: las cinco colecciones deben estar vacías");
             }
         }
+        await prepararColeccionesAuth(require("mongoose").connection.db);
+        await crearAdminInicial();
         for (const { Modelo, documentos } of cargas) {
             for (const documento of documentos) {
                 await documento.save();

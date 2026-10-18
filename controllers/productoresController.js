@@ -61,7 +61,7 @@ const actualizarProductor = async (req, res, next) => {
         const productor = res.locals.productor;
         const datos = req.body || {};
         productor.nombre = datos.nombre;
-        if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
+        if (datos.usuario || datos.password || datos.cuentaId !== undefined) {
             await crearAcceso(productor, "Cliente", datos);
             return res.json({ mensaje: "Cliente y acceso actualizados", productor });
         }

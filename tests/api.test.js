@@ -107,7 +107,6 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
     // IDs explícitos, distintos para las cuentas de clientes e ingenieros.
     const acceso = (ruta, id) => ({
         cuentaId: (ruta === "/tecnicos" ? 1000 : 2000) + id,
-        relacionRolId: (ruta === "/tecnicos" ? 1000 : 2000) + id,
         usuario: ruta.slice(1) + id + "@prueba.test",
         password: "PruebaTemporal123456"
     });
@@ -637,7 +636,7 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
             const ficha = await solicitud("GET", ruta + "/1", undefined, 200);
             const datosAcceso = acceso(ruta, 1);
             assert.equal(ficha.usuarioId, datosAcceso.cuentaId);
-            assert.ok(await UsuarioTieneRol.exists({ usuarioId: ficha.usuarioId, rolId }));
+            assert.ok(await UsuarioTieneRol.exists({ _id: ficha.usuarioId, usuarioId: ficha.usuarioId, rolId }));
             const cuenta = await Usuario.findById(ficha.usuarioId).select("+passwordHash +salt +passwordIteraciones");
             assert.ok(await cuenta.validarPassword(datosAcceso.password));
             await solicitud("POST", "/auth/login", { usuario: datosAcceso.usuario, password: datosAcceso.password }, 200, true);

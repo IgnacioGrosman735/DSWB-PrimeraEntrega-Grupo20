@@ -35,11 +35,8 @@ html(lang="es")
         p
           label(for="cuentaId") ID del usuario
           input#cuentaId(type="number" name="cuentaId" min="1" max="9007199254740991" step="1" required=!editar)
-        p
-          label(for="relacionRolId") ID de la relación usuario-rol
-          input#relacionRolId(type="number" name="relacionRolId" min="1" max="9007199254740991" step="1" required=!editar)
         if editar
-          p Completá los dos IDs, correo y contraseña para crear el acceso. Dejalos vacíos para conservar la ficha sin cuenta.
+          p Completá el ID del usuario, correo y contraseña para crear el acceso. Dejalos vacíos para conservar la ficha sin cuenta.
         p
           label(for="usuario") Correo para iniciar sesión
           input#usuario(type="email" name="usuario" maxlength="254" required=!editar autocomplete="off")

@@ -67,7 +67,7 @@ const actualizarTecnico = async (req, res, next) => {
         const tecnico = res.locals.tecnico;
         const datos = req.body || {};
         tecnico.nombre = datos.nombre;
-        if (datos.usuario || datos.password || datos.cuentaId !== undefined || datos.relacionRolId !== undefined) {
+        if (datos.usuario || datos.password || datos.cuentaId !== undefined) {
             if (datos.usuarioId) return res.status(400).json({ mensaje: "Elegí una cuenta existente o creá una nueva, no ambas" });
             tecnico.nombre = datos.nombre;
             await crearAcceso(tecnico, "Ingeniero", datos);

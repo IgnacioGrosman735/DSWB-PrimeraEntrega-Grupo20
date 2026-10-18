@@ -14,14 +14,13 @@ const correoAcceso = formulario?.querySelector('#usuario');
 const claveAcceso = formulario?.querySelector('#password');
 if (correoAcceso && claveAcceso && formulario.dataset.metodo === "PUT") {
     const validarAcceso = () => {
-        const campos = [correoAcceso, claveAcceso, formulario.querySelector('#cuentaId'), formulario.querySelector('#relacionRolId')];
+        const campos = [correoAcceso, claveAcceso, formulario.querySelector('#cuentaId')];
         const crearCuenta = campos.some(campo => campo.value !== "");
         campos.forEach(campo => { campo.required = crearCuenta; });
     };
     correoAcceso.addEventListener("input", validarAcceso);
     claveAcceso.addEventListener("input", validarAcceso);
     formulario.querySelector('#cuentaId').addEventListener("input", validarAcceso);
-    formulario.querySelector('#relacionRolId').addEventListener("input", validarAcceso);
 }
 document.querySelectorAll("[data-no-espacios]").forEach(campo => {
     campo.addEventListener("input", () => {
@@ -52,10 +51,10 @@ if (formulario) formulario.addEventListener("submit", async evento => {
     mensaje.textContent = "Guardando…";
     try {
         const datos = Object.fromEntries(new FormData(formulario));
-        for (const campo of ["cuentaId", "relacionRolId"]) {
+        for (const campo of ["cuentaId"]) {
             if (datos[campo] === "") delete datos[campo];
         }
-        for (const campo of ["_id", "cuentaId", "relacionRolId", "loteId", "hectareas", "productorId", "tipoCultivoId", "tecnicoId", "usuarioId"]) {
+        for (const campo of ["_id", "cuentaId", "loteId", "hectareas", "productorId", "tipoCultivoId", "tecnicoId", "usuarioId"]) {
             if (campo in datos) datos[campo] = datos[campo] === "" && ["productorId", "tecnicoId", "usuarioId"].includes(campo) ? null : Number(datos[campo]);
         }
         await enviar(formulario.dataset.api, formulario.dataset.metodo, datos);

@@ -8,11 +8,11 @@ async function crearAcceso(ficha, nombreRol, datos) {
     const usuario = normalizarEmail(datos.usuario);
     const invalido = mensaje => Object.assign(new Error(mensaje), { status: 400, mensajePublico: mensaje });
     if (ficha.usuarioId) throw invalido("Esta ficha ya tiene una cuenta vinculada");
-    if (![datos.cuentaId, datos.relacionRolId].every(id => Number.isSafeInteger(id) && id > 0)) {
-        throw invalido("Ingresá IDs enteros positivos para el usuario y la relación usuario-rol");
+    if (!Number.isSafeInteger(datos.cuentaId) || datos.cuentaId <= 0) {
+        throw invalido("Ingresá un ID entero positivo para el usuario");
     }
     if (await Usuario.exists({ _id: datos.cuentaId })) throw invalido("Ese ID de usuario ya existe");
-    if (await UsuarioTieneRol.exists({ _id: datos.relacionRolId })) throw invalido("Ese ID de relación usuario-rol ya existe");
+    if (await UsuarioTieneRol.exists({ _id: datos.cuentaId })) throw invalido("El ID del usuario ya está ocupado por una relación usuario-rol");
     if (!nombreValido(ficha.nombre) || !emailValido(usuario) || !passwordValida(datos.password)) {
         throw invalido("Ingresá un nombre de hasta 100 caracteres, correo válido y contraseña de 15 a 128 caracteres");
     }
@@ -24,7 +24,8 @@ async function crearAcceso(ficha, nombreRol, datos) {
     let relacion;
     try {
         cuenta = await Usuario.create({ _id: datos.cuentaId, nombre: ficha.nombre, usuario, ...credenciales, activo: true });
-        relacion = await UsuarioTieneRol.create({ _id: datos.relacionRolId, usuarioId: cuenta._id, rolId: rol._id });
+        // Una relación por usuario: reutilizamos su ID, sin autoincremento.
+        relacion = await UsuarioTieneRol.create({ _id: datos.cuentaId, usuarioId: cuenta._id, rolId: rol._id });
         ficha.usuarioId = cuenta._id;
         await ficha.save();
         return ficha;

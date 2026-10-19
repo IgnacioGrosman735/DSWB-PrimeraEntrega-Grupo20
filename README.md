@@ -2,14 +2,14 @@
 
 AgroTec brinda servicios de monitoreo a productores agrícolas. Esta aplicación centraliza la información que antes se registraba en papel y planillas, y permite consultar el historial de observaciones de cada lote.
 
-Actualmente administra productores, técnicos y lotes, registra observaciones y permite consultar el historial, los lotes por alerta y las observaciones por técnico.
+Actualmente administra productores (clientes), técnicos (ingenieros), lotes y tipos de cultivo mediante API y vistas Pug. Incluye creación de cuentas vinculadas, login y presentación del perfil por roles, asignaciones de lotes, registro de observaciones y consultas del historial, por alerta y por técnico. El login todavía no establece sesiones ni autorización de las rutas.
 
 ## Estado actual del proyecto
 
 | Recurso | Estado actual | Funcionalidad |
 | --- | --- | --- |
 | Productores (clientes) | CRUD y alta de acceso | API y formularios desde el menú Admin. |
-| Lotes | CRUD e historial implementados | Administración mediante la API. |
+| Lotes | CRUD, historial y asignaciones implementados | API y formularios Pug; cliente opcional y múltiples ingenieros. |
 | Técnicos (ingenieros) | CRUD y alta de acceso | API, formularios y asignación de lotes. |
 | Observaciones | Registro y consulta implementados | Conservar el historial sin eliminación. |
 | Tipos de cultivo | CRUD implementado | Administración mediante API y vistas Pug. |
@@ -25,7 +25,7 @@ El ingreso se realiza en `/login` con correo y contraseña. El campo `usuario` g
 
 Al editar una ficha sin cuenta se puede crear su acceso. También se puede vincular una cuenta Ingeniero existente desde la edición del técnico. Eliminar una ficha no elimina su cuenta; la modificación de credenciales y baja de cuentas no están implementadas en estos formularios.
 
-`models/Usuario.js` genera hash y salt mediante PBKDF2 asíncrono con SHA-512, 220000 iteraciones y salt aleatorio de 16 bytes. Los métodos `crearPasswordSeguro()` y `validarPassword()` se usan con `await`; la comparación utiliza `timingSafeEqual`. La contraseña tiene entre 15 y 128 caracteres y nunca se almacena en texto plano.
+`models/Usuario.js` genera hash y salt mediante PBKDF2 asíncrono con SHA-512, 220000 iteraciones y salt aleatorio de 16 bytes. Los métodos `crearPasswordSeguro()` y `validarPassword()` se usan con `await`; la comparación utiliza `timingSafeEqual`. La contraseña tiene entre 15 y 128 caracteres y nunca se almacena en texto plano. El nombre de la ficha y `Usuario.nombre` son independientes: editar el nombre del productor o técnico no actualiza el nombre mostrado por el login de una cuenta existente.
 
 **Alcance pendiente:** no hay sesiones ni autorización de rutas por rol. Los menús se adaptan al perfil, pero los endpoints siguen accesibles directamente. `sessionStorage` conserva solo la presentación del menú. El enlace «Olvidé mi contraseña» indica contactar al administrador; no recupera contraseñas automáticamente.
 
@@ -132,7 +132,7 @@ Si PowerShell bloquea `npm.ps1`, usar `npm.cmd test`. El comando utiliza el ejec
 
 `tests/api.test.js` importa `app` sin iniciar automáticamente la aplicación, prepara sus propios datos y realiza solicitudes HTTP para comprobar CRUD, historial, filtros, relaciones, validaciones, logger, respuestas JSON y vistas HTML. Las observaciones conservan únicamente las operaciones de creación y consulta.
 
-La misma suite incorpora seis grupos de comprobaciones de validaciones y reglas de negocio:
+La ejecución actual informa 14 pruebas aprobadas, contando la prueba principal y sus 13 subtests. La suite incorpora seis grupos de comprobaciones de validaciones y reglas de negocio:
 
 1. Omite cada campo obligatorio por separado y prueba tipos y valores inválidos en los cuerpos de creación y actualización.
 2. Comprueba las referencias de lotes y observaciones, y compara los documentos antes y después de las solicitudes rechazadas para detectar escrituras indebidas.
@@ -142,6 +142,8 @@ La misma suite incorpora seis grupos de comprobaciones de validaciones y reglas 
 6. Verifica estados HTTP y mensajes exactos; simula un fallo de `save()` antes de la escritura para comprobar la respuesta `500` y que los documentos no cambien.
 
 Además se comprueban las cuentas vinculadas, el login, los lotes sin cliente, la fecha opcional y el rechazo de observaciones sin cuenta activa, sin asignación o con otro cultivo.
+
+Los casos de login incluidos comprueban credenciales correctas de las cuentas creadas. La suite no cubre todos los escenarios de credenciales incorrectas, cuentas inactivas o formato inválido, ni ejecuta la navegación y los scripts en un navegador. No verifica autorización por rol, porque esa funcionalidad aún no está implementada.
 
 Estas comprobaciones utilizan MongoDB real en la base temporal de la suite. Las comparaciones incluyen los datos almacenados, además de las respuestas HTTP.
 
@@ -184,12 +186,13 @@ Las rutas ejecutan los middleware de validación y delegan las operaciones en lo
 El orden de ejecución se conserva:
 
 ```text
-logger → express.json() → rutas → validaciones → controladores
+logger → express.json() → express.urlencoded() → archivos estáticos /js
+Solicitudes restantes → rutas → validaciones → controladores
 Sin ruta coincidente → middleware 404
 Errores enviados a next(error) → manejador global de errores
 ```
 
-En los PUT, la ruta valida el ID, busca el recurso mediante una función del controlador, valida el cuerpo y ejecuta la actualización. Así conserva la respuesta `404` para un recurso inexistente aunque el cuerpo también sea inválido. Los errores de las vistas `/web` se presentan en HTML.
+En los PUT de productores, técnicos y lotes, la ruta valida el ID, busca el recurso mediante una función del controlador, valida el cuerpo y ejecuta la actualización. Así conserva la respuesta `404` para un recurso inexistente aunque el cuerpo también sea inválido. En PUT de tipos de cultivo se valida el ID de ruta y luego el cuerpo antes de buscar el registro; por eso un cuerpo inválido puede responder `400` aunque el recurso no exista. Los errores de las vistas `/web` se presentan en HTML.
 
 ## Recursos y datos iniciales
 
@@ -222,10 +225,12 @@ Los campos `productorId`, `tipoCultivoId`, `loteId` y `tecnicoId` guardan refere
 | Recurso | Campos |
 | --- | --- |
 | Productor | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId |
-| Lote | _id, hectareas, tipoCultivoId, productorId, ubicacion |
+| Lote | _id, hectareas, tipoCultivoId, productorId opcional (null si no está asignado), ubicacion |
 | Técnico | _id, nombre, usuarioId; el alta recibe usuario (correo), password, cuentaId |
 | Tipo de cultivo | _id, nombre |
 | Observación | _id, loteId, tecnicoId, fecha, tipoCultivoId, estadoCultivo, observaciones, nivelAlerta, estado |
+
+`estado` de observación es un campo almacenado: POST lo establece siempre en `Cargada`, aunque se envíe otro valor. `fecha` puede omitirse en POST y `productorId` puede omitirse o ser `null` al crear un lote.
 
 La carga inicial incluye:
 
@@ -234,6 +239,13 @@ La carga inicial incluye:
 - Doce técnicos con IDs del 1 al 12 en `data/tecnicos.json`. Los técnicos relacionados con las observaciones actuales son 1 = Pedro González y 2 = Mónica López.
 - Cultivos iniciales: 1 = Arroz, 2 = Soja y 3 = Maíz.
 - Seis observaciones con IDs del 1 al 6, fechadas entre el 10 y el 16 de septiembre de 2026. Cada lote tiene dos observaciones.
+
+La importación crea únicamente la cuenta Admin; los doce técnicos y los tres productores de ejemplo quedan sin cuentas vinculadas y no se generan asignaciones en `tecnico_tiene_lotes`. Las observaciones importadas se conservan como datos históricos. Para probar nuevas observaciones desde un ingeniero importado:
+
+1. Ingresar con el Admin y editar la ficha del ingeniero.
+2. Crear su acceso con un `cuentaId` libre, correo y contraseña, o vincular una cuenta Ingeniero activa existente.
+3. Asignarle un lote desde la pantalla de asignaciones.
+4. Ingresar con esa cuenta y abrir «Mis lotes y observaciones».
 
 Las solicitudes de creación modifican MongoDB. Los ejemplos usan IDs libres respecto de la carga inicial: 4 para productor y lote, 13 para técnico y 7 para observación. Si esos IDs ya existen, elegir otros y adaptar las solicitudes siguientes.
 
@@ -266,24 +278,25 @@ Todos los campos de la siguiente tabla son obligatorios al crear el recurso:
 | --- | --- | --- |
 | Productor | `_id`, `nombre`, `usuario`, `password`, `cuentaId` | `nombre` obligatorio. |
 | Técnico | `_id`, `nombre`, `usuario`, `password`, `cuentaId` | `nombre` obligatorio. |
-| Lote | `_id`, `hectareas`, `tipoCultivoId`, `ubicacion` | Al menos uno de los cuatro campos distintos de `_id`; los omitidos se conservan. |
+| Lote | `_id`, `hectareas`, `tipoCultivoId`, `ubicacion` | Al menos uno de `hectareas`, `tipoCultivoId`, `productorId` o `ubicacion`; los omitidos se conservan. |
+| Tipo de cultivo | `_id`, `nombre` | `nombre` obligatorio; `_id` solo si coincide con el de la URL. |
 | Observación | `_id`, `loteId`, `tecnicoId`, `tipoCultivoId`, `estadoCultivo`, `observaciones`, `nivelAlerta` | Sin ruta de actualización. |
 
 La validación comprueba el tipo y el valor de cada campo. Un ID numérico no admite fracciones, cero, negativos ni valores fuera del rango de enteros seguros; un texto obligatorio no admite `null`, números ni cadenas vacías o formadas solo por espacios. Las solicitudes inválidas se rechazan antes de guardar.
 
-### Compatibilidad de la integración
+### Contrato actual de la API
 
-Antes de incorporar esta rama a develop, actualizar los consumidores de la API y los ejemplos del equipo:
+Los consumidores de la API deben respetar los siguientes comportamientos:
 
 | Operación | Comportamiento acordado |
 | --- | --- |
 | POST /productores y /tecnicos | Requieren cuenta de acceso: usuario (correo), password, cuentaId, además de _id y nombre. Las solicitudes antiguas con solo ID y nombre responden 400. |
 | POST y PUT /lotes | Admiten cliente existente o sin asignar. Omitir productorId en PUT conserva el anterior; null lo desasigna. |
 | POST /observaciones | Admite fecha enviada válida o fecha actual si se omite. Exige cuenta Ingeniero activa, asignación al lote y cultivo coincidente. |
-| PUT /tecnicos/:id/lotes/:loteId | Una nueva asignación requiere su _id manual en el cuerpo. |
+| PUT /tecnicos/:id/lotes/:loteId | No requiere body. El servidor genera el ID; repetir una pareja ya asignada no la duplica. Puede responder 409 si se agotan los reintentos por concurrencia. |
 | GET / | Redirige a /login. Los listados siguen disponibles en /web/lotes y /web/tecnicos. |
 
-Se conservan los middleware de Andrea, la prioridad del 404 en las actualizaciones de recursos inexistentes, el logger y la protección del historial. Las pruebas preparan cuentas, roles y asignaciones; se mantienen los casos de fecha enviada y se agregan los de fecha omitida y cliente opcional. No se modifican los IDs ni los datos de las bases existentes.
+Los middleware validan la entrada; los controladores comprueban relaciones y dependencias. Se conserva la prioridad del 404 en las actualizaciones de productores, técnicos y lotes, el logger y la protección del historial. Las pruebas preparan cuentas, roles y asignaciones; se mantienen los casos de fecha enviada y se agregan los de fecha omitida y cliente opcional. No se modifican los IDs ni los datos de las bases existentes.
 
 El correo es único y se normaliza a minúsculas. El servidor asigna el rol según el recurso. Si falla el guardado de una ficha, se intenta retirar su nueva cuenta y relación de rol; esta compensación no es una transacción.
 
@@ -331,13 +344,14 @@ Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación 
 | Estado | Cuándo se utiliza |
 | --- | --- |
 | `200` | Consultas, actualizaciones y eliminaciones exitosas. Un listado sin coincidencias devuelve `[]`. |
-| `201` | Creación exitosa de un productor, técnico, lote u observación. |
+| `201` | Creación exitosa de un productor, técnico, lote, tipo de cultivo u observación. |
 | `401` | Credenciales incorrectas o cuenta inactiva al iniciar sesión. |
 | `400` | Campos, tipos, valores, IDs o filtros inválidos; IDs duplicados; relaciones inexistentes al guardar; eliminaciones bloqueadas por dependencias. |
 | `404` | Recurso consultado, actualizado o eliminado inexistente; técnico inexistente en el filtro `tecnicoId`; ruta no disponible, incluidas las modificaciones o eliminaciones de observaciones. |
+| `409` | No se pudo crear una asignación de ingeniero a lote después de los reintentos por concurrencia. |
 | `500` | Fallo inesperado al consultar, guardar o eliminar. El mensaje público es `Error interno del servidor`. |
 
-Una misma ausencia tiene distinto estado según la operación: consultar `/productores/999` responde `404` si no existe; intentar guardar un lote con `productorId: 999` responde `400`. En ambos casos el mensaje es `El productor no existe`. En PUT, la búsqueda del recurso precede a la validación del cuerpo, por lo que un registro inexistente conserva su respuesta `404`.
+Una misma ausencia tiene distinto estado según la operación: consultar `/productores/999` responde `404` si no existe; intentar guardar un lote con `productorId: 999` responde `400`. En ambos casos el mensaje es `El productor no existe`. En PUT de productores, técnicos y lotes, la búsqueda del recurso precede a la validación del cuerpo, por lo que un registro inexistente conserva su respuesta `404`. En tipos de cultivo, el cuerpo se valida antes de buscarlo.
 
 Los middleware de validación responden con `400` y un mensaje específico cuando los parámetros, filtros o cuerpos son inválidos. Los controladores conservan las respuestas `400` o `404` correspondientes a duplicados, recursos inexistentes, relaciones y dependencias. Para las vistas `/web`, los errores de ID se renderizan con `error.pug`; la API responde JSON.
 
@@ -456,6 +470,74 @@ O1 — POST `/observaciones` (crear el técnico 13 con T1 y asignarlo al lote 1 
   "estadoCultivo": "Requiere revisión",
   "observaciones": "Se registra una situación que requiere atención del técnico",
   "nivelAlerta": "Crítico"
+}
+```
+
+### Ejemplos del módulo de acceso, cultivos y asignaciones
+
+Usar IDs y correos libres. Los ejemplos siguientes son independientes; las operaciones que mencionan una ficha existente requieren que se haya creado antes.
+
+**Login:** en Postman, enviar POST `/auth/login` con Body `x-www-form-urlencoded` y `Content-Type: application/x-www-form-urlencoded`:
+
+```text
+usuario=admin@prueba.com
+password=administrador123456789
+```
+
+Las credenciales de ejemplo corresponden a la importación inicial. Una respuesta correcta es `200` con el perfil en HTML; un formato inválido devuelve `400` y credenciales incorrectas o cuenta inactiva devuelven `401`, también en HTML. La API acepta además un cuerpo JSON con esos mismos campos. No devuelve token ni crea una sesión.
+
+**Crear acceso para una ficha importada sin cuenta:** PUT `/tecnicos/1` (para un productor, usar `/productores/1`):
+
+```json
+{
+    "nombre": "Pedro González",
+    "cuentaId": 4,
+    "usuario": "pedro@ejemplo.com",
+    "password": "ClaveDePrueba123456"
+}
+```
+
+Debe responder `200`. Esta operación crea una cuenta nueva; no cambia credenciales de una cuenta ya vinculada.
+
+**Vincular una cuenta Ingeniero activa existente:** PUT `/tecnicos/1`:
+
+```json
+{
+    "nombre": "Pedro González",
+    "usuarioId": 4
+}
+```
+
+La cuenta debe tener el rol Ingeniero y no estar vinculada a otro técnico. No enviar `usuario`, `password` ni `cuentaId` junto con la selección de una cuenta existente.
+
+**Desvincular la cuenta de un técnico:** PUT `/tecnicos/1`:
+
+```json
+{
+    "nombre": "Pedro González",
+    "usuarioId": null
+}
+```
+
+Responde `200`, conserva la cuenta y deja al técnico sin acceso vinculado para registrar nuevas observaciones. La vinculación y desvinculación mediante `usuarioId` corresponden a técnicos; no están implementadas para productores.
+
+**Tipos de cultivo:** con el ID libre `4`, ejecutar en este orden:
+
+| Método | URL | Body JSON | Resultado |
+| --- | --- | --- | --- |
+| POST | `/tipos-cultivo` | `{"_id":4,"nombre":"Trigo"}` | `201`, objeto `tipoCultivo`. |
+| PUT | `/tipos-cultivo/4` | `{"nombre":"Trigo de prueba"}` | `200`, objeto `tipoCultivo`. |
+| DELETE | `/tipos-cultivo/4` | Sin body | `200` si no está asociado a lotes u observaciones; `400` si tiene dependencias. |
+
+No hay ruta GET `/tipos-cultivo/:id`; el catálogo se consulta con GET `/tipos-cultivo`.
+
+**Asignaciones de ingenieros:** PUT `/tecnicos/13/lotes/1`, sin body, responde `200` con `{"mensaje":"Lote asignado"}`. DELETE sobre la misma URL, sin body, responde `200` y conserva el lote y su historial. Ambas operaciones requieren que existan el técnico y el lote; no necesitan un ID de asignación enviado por el cliente.
+
+**Desasignar un cliente:** PUT `/lotes/4` con este cuerpo responde `200` y conserva los demás campos:
+
+```json
+{
+    "productorId": null
 }
 ```
 

@@ -1,3 +1,4 @@
+require("../config/entorno");
 const mongoose = require("mongoose");
 const cerrarDB = require("../config/cerrarDB");
 const { prepararColeccionesAuth } = require("../config/coleccionesAuth");

@@ -89,7 +89,7 @@ Desde la carpeta del proyecto, instalar las dependencias:
 npm install
 ```
 
-La configuración predeterminada permite conectarse a MongoDB local sin definir variables adicionales:
+La conexión predeterminada apunta a MongoDB local. Para iniciar el servidor siempre se necesita `SESSION_SECRET`:
 
 | Variable | Valor predeterminado | Descripción |
 | --- | --- | --- |
@@ -99,22 +99,23 @@ La configuración predeterminada permite conectarse a MongoDB local sin definir 
 | `NODE_ENV` | Sin definir | Usar `production` al publicar con HTTPS. |
 | `TRUST_PROXY` | `0` | `1` solo si hay exactamente un proxy de confianza delante de Express. |
 
-Para utilizar otros valores, configurar las variables antes de ejecutar los comandos de importación o inicio. Ejemplo en PowerShell:
+La aplicación carga automáticamente el archivo `.env` de la raíz mediante `dotenv`, tanto con `npm run dev` como con `npm start`. Los scripts de importación y preparación de autenticación también lo cargan. `config/entorno.js` resuelve la ruta desde el proyecto, independientemente del directorio de ejecución.
 
-```powershell
-$env:MONGODB_URI = "mongodb://127.0.0.1:27017/agrotec"
-$env:PORT = "3100"
+Copiar `.env.example` a `.env` si todavía no existe y completar `MONGODB_URI` y `SESSION_SECRET`. `.env` está excluido de Git; no pegar credenciales reales en README ni en `.env.example`.
+
+Para Atlas, la conexión tiene esta estructura (los valores son marcadores, no credenciales):
+
+```text
+mongodb+srv://USUARIO:CLAVE_CODIFICADA@HOST/agrotec?authSource=admin
 ```
 
-Antes de iniciar el servidor, generar el secreto en PowerShell (el comando lo asigna sin mostrarlo):
+La contraseña incluida en la URI debe codificarse como componente de URL. El backend desplegado utiliza su usuario de base de datos, separado de los usuarios personales de Compass. La conexión a Atlas no publica la aplicación web: durante el desarrollo se mantiene `NODE_ENV=development` y `TRUST_PROXY=0` para entrar por HTTP en localhost.
 
-```powershell
-$env:SESSION_SECRET = node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))"
-```
+`SESSION_SECRET` debe ser un valor aleatorio de al menos 32 caracteres. Guardarlo una sola vez en `.env` permite conservar las sesiones entre reinicios. No regenerarlo en cada arranque. En el hosting se configuran estas variables en el panel privado del proveedor y se utiliza HTTPS.
 
-Para conservar sesiones entre reinicios, mantener el mismo secreto en una configuración privada o en las variables del proveedor de despliegue. Generar otro secreto invalida las cookies anteriores. Nunca incluir el valor real en Git. En producción configurar HTTPS y el proxy según la infraestructura elegida; no activar `TRUST_PROXY` indiscriminadamente.
+Las variables ya definidas en la terminal o el hosting tienen prioridad sobre `.env`. Si antes se configuraron `$env:MONGODB_URI` o `$env:SESSION_SECRET`, abrir una terminal nueva o quitar esas variables antes de usar la configuración del archivo. Al editar `.env`, reiniciar `npm run dev`.
 
-Las variables configuradas así pertenecen a esa sesión de PowerShell. `.env.example` muestra las opciones disponibles; la aplicación no carga archivos `.env` automáticamente.
+Las pruebas usan `TEST_MONGODB_URI` y bases temporales propias; no usan `MONGODB_URI` ni la base de Atlas de la aplicación. Después de migrar una base existente, no repetir `npm run importar`: el importador es únicamente para una carga inicial vacía.
 
 ### 3. Carga inicial y ejecución
 
@@ -189,6 +190,7 @@ Cada ejecución usa una base nueva con nombre `agrotec_test_<uuid>`. La suite no
 
 - `index.js`: configuración de Express y Pug, middleware y rutas. Exporta `app` para las pruebas e inicia el servidor únicamente al ejecutarse directamente.
 - `config/database.js`: conexión a MongoDB mediante Mongoose.
+- `config/entorno.js`: carga privada de `.env` sin reemplazar variables del entorno.
 - `config/coleccionesAuth.js` y `coleccionesNegocio.js`: validaciones e índices de MongoDB.
 - `config/cerrarDB.js`: cierre de conexión en los scripts y ante fallos del arranque.
 - `models/`: esquemas, validaciones y referencias de los recursos, usuarios, roles y asignaciones.

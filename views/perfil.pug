@@ -4,9 +4,8 @@ html(lang="es")
         meta(charset="utf-8")
         meta(name="viewport", content="width=device-width, initial-scale=1")
         title Mi perfil — AgroTec
-        script(src="/js/menu.js" defer)
     body
-        main#menu-perfil(data-perfil=nombre !== null ? JSON.stringify({ nombre, roles, tecnicoId }) : undefined)
+        main#menu-perfil
             h1#bienvenida= nombre !== null ? 'Bienvenido, ' + nombre : 'Bienvenido'
             p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
             div#opciones-admin(hidden=!roles.includes('Admin'))
@@ -22,5 +21,5 @@ html(lang="es")
                 p
                     a#mis-lotes(href=tecnicoId ? '/web/ingenieros/' + tecnicoId + '/lotes' : undefined) Mis lotes y observaciones
             p#aviso-perfil(hidden=roles.includes('Admin') || (roles.includes('Ingeniero') && tecnicoId))= nombre === null ? 'Ingresá desde el login para mostrar tu perfil.' : roles.includes('Ingeniero') ? 'El administrador debe vincular tu cuenta a una ficha técnica para cargar observaciones.' : 'El perfil de clientes se incorporará en una próxima etapa.'
-            p
-                a#volver-login(href="/login") Volver al login
+            form(action="/auth/logout" method="POST")
+                button(type="submit") Cerrar sesión

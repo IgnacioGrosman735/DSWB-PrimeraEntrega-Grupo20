@@ -1,6 +1,4 @@
 const Usuario = require("../models/Usuario");
-const Tecnico = require("../models/Tecnico");
-const UsuarioTieneRol = require("../models/UsuarioTieneRol");
 require("../models/Rol");
 const { ITERACIONES } = require("../utils/password");
 
@@ -30,17 +28,24 @@ async function iniciarSesion(req, res, next) {
         if (!usuario || !valido || !usuario.activo) {
             return res.status(401).render("login", { error: "Correo o contraseña incorrectos" });
         }
-        const relaciones = await UsuarioTieneRol.find({ usuarioId: usuario._id }).populate("rolId");
-        const roles = relaciones
-            .filter((relacion) => relacion.rolId)
-            .map((relacion) => relacion.rolId.nombre);
-        const tecnico = roles.includes("Ingeniero")
-            ? await Tecnico.findOne({ usuarioId: usuario._id })
-            : null;
-        res.render("perfil", { nombre: usuario.nombre, roles, tecnicoId: tecnico?._id || null });
+        await new Promise((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));
+        req.session.usuarioId = usuario._id;
+        await new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()));
+        res.redirect(303, "/web/menu");
     } catch (error) {
         next(error);
     }
 }
 
-module.exports = { mostrarLogin, iniciarSesion };
+async function cerrarSesion(req, res, next) {
+    try {
+        await new Promise((resolve, reject) => req.session.destroy(error => error ? reject(error) : resolve()));
+        const { nombreCookie, opcionesCookie } = require("../config/sesiones");
+        res.clearCookie(nombreCookie, opcionesCookie());
+        res.redirect(303, "/login");
+    } catch (error) {
+        next(error);
+    }
+}
+
+module.exports = { mostrarLogin, iniciarSesion, cerrarSesion };

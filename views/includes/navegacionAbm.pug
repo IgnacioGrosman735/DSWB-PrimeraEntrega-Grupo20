@@ -1,4 +1,6 @@
 form(action="/web/menu" method="GET")
     button(type="submit") Ir al menú
+form(action="/auth/logout" method="POST")
+    button(type="submit") Cerrar sesión
 p#mensaje(role="status" aria-live="polite")
 script(src="/js/abm.js" defer)

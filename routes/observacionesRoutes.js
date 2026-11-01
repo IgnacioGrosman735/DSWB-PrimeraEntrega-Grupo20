@@ -8,12 +8,13 @@ const {
 const { validarCreacionObservacion } = require("../middleware/validaciones/observaciones");
 
 const router = express.Router();
+const { autorizarObservaciones } = require("../middleware/sesion");
 
 const { validarId, validarTecnicoId } = require("../middleware/validaciones/parametros");
 
-router.get("/", validarTecnicoId, obtenerObservaciones);
-router.get("/:id", validarId, obtenerObservacionPorId);
+router.get("/", validarTecnicoId, autorizarObservaciones, obtenerObservaciones);
+router.get("/:id", validarId, autorizarObservaciones, obtenerObservacionPorId);
 
-router.post("/", validarCreacionObservacion, crearObservacion);
+router.post("/", autorizarObservaciones, validarCreacionObservacion, crearObservacion);
 
 module.exports = router;

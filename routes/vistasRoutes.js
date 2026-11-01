@@ -7,12 +7,15 @@ const {
     mostrarHistorialObservaciones
 } = require("../controllers/observacionesController");
 const router = express.Router();
+const { soloAdmin, ingenieroPropio } = require("../middleware/sesion");
+router.use("/ingenieros/:tecnicoId", ingenieroPropio);
 router.get("/ingenieros/:tecnicoId/lotes", mostrarLotesIngeniero);
 router.get("/ingenieros/:tecnicoId/lotes/:loteId/historial", mostrarHistorialObservaciones);
 router.get("/ingenieros/:tecnicoId/lotes/:loteId/observaciones", mostrarCargaObservacion);
 router.get("/menu", (req, res) =>
-    res.render("perfil", { nombre: null, roles: [], tecnicoId: null })
+    res.render("perfil", req.perfil)
 );
+router.use(soloAdmin);
 const {
     mostrarFormulario,
     mostrarCultivos,

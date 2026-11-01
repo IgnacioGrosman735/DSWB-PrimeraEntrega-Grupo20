@@ -54,19 +54,41 @@ test("contrato HTTP de la API y las vistas", { timeout: 60000 }, async (t) => {
         mongoose.connection.db
     );
 
+    process.env.SESSION_SECRET = randomUUID() + randomUUID();
+    await require("../config/sesiones").prepararSesiones(app);
+    const Usuario = require("../models/Usuario");
+    const UsuarioTieneRol = require("../models/UsuarioTieneRol");
+    const adminPassword = "AdminTemporal123456";
+    await Usuario.create({ _id: 900000, nombre: "Admin de pruebas", usuario: "admin@prueba.test",
+        ...await Usuario.crearPasswordSeguro(adminPassword), activo: true });
+    await UsuarioTieneRol.create({ _id: 900000, usuarioId: 900000, rolId: 1 });
     await TipoCultivo.create({ _id: 1, nombre: "Maíz de prueba" });
 
     servidor = app.listen(0, "127.0.0.1");
     await once(servidor, "listening");
     const base = `http://127.0.0.1:${servidor.address().port}`;
 
+    const loginAdmin = await fetch(base + "/auth/login", {
+        method: "POST", redirect: "manual",
+        headers: { "Content-Type": "application/json", Connection: "close" },
+        body: JSON.stringify({ usuario: "admin@prueba.test", password: adminPassword })
+    });
+    assert.equal(loginAdmin.status, 303);
+    const cookieAdmin = loginAdmin.headers.get("set-cookie").split(";")[0];
+    await loginAdmin.text();
+
     const solicitud = async (metodo, ruta, cuerpo, estado, html = false) => {
-        const opciones = { method: metodo, headers: { Connection: "close" } };
+        const opciones = { method: metodo, headers: { Connection: "close", ...(ruta === "/auth/login" ? {} : { Cookie: cookieAdmin }) } };
         if (cuerpo !== undefined) {
             opciones.headers["Content-Type"] = "application/json";
             opciones.body = JSON.stringify(cuerpo);
         }
-        const respuesta = await fetch(base + ruta, opciones);
+        let respuesta = await fetch(base + ruta, { ...opciones, redirect: "manual" });
+        if (ruta === "/auth/login" && respuesta.status === 303) {
+            const cookie = respuesta.headers.get("set-cookie").split(";")[0];
+            await respuesta.text();
+            respuesta = await fetch(base + "/web/menu", { headers: { Cookie: cookie, Connection: "close" } });
+        }
         const texto = await respuesta.text();
 
         assert.equal(respuesta.status, estado, `${metodo} ${ruta}: ${texto}`);

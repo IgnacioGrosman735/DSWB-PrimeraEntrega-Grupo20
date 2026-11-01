@@ -2,7 +2,7 @@
 
 AgroTec brinda servicios de monitoreo a productores agrícolas. Esta aplicación centraliza la información que antes se registraba en papel y planillas, y permite consultar el historial de observaciones de cada lote.
 
-Actualmente administra productores (clientes), técnicos (ingenieros), lotes y tipos de cultivo mediante API y vistas Pug. Incluye creación de cuentas vinculadas, login y presentación del perfil por roles, asignaciones de lotes, registro de observaciones y consultas del historial, por alerta y por técnico. El login todavía no establece sesiones ni autorización de las rutas.
+Actualmente administra productores (clientes), técnicos (ingenieros), lotes y tipos de cultivo mediante API y vistas Pug. Incluye creación de cuentas vinculadas, login y presentación del perfil por roles, asignaciones de lotes, registro de observaciones y consultas del historial, por alerta y por técnico. El login establece sesiones persistidas en MongoDB y las rutas privadas verifican la sesión y los permisos.
 
 ## Estado actual del proyecto
 
@@ -27,7 +27,25 @@ Al editar una ficha sin cuenta se puede crear su acceso. También se puede vincu
 
 `models/Usuario.js` genera hash y salt mediante PBKDF2 asíncrono con SHA-512, 220000 iteraciones y salt aleatorio de 16 bytes. Los métodos `crearPasswordSeguro()` y `validarPassword()` se usan con `await`; la comparación utiliza `timingSafeEqual`. La contraseña tiene entre 15 y 128 caracteres y nunca se almacena en texto plano. El nombre de la ficha y `Usuario.nombre` son independientes: editar el nombre del productor o técnico no actualiza el nombre mostrado por el login de una cuenta existente.
 
-**Alcance pendiente:** no hay sesiones ni autorización de rutas por rol. Los menús se adaptan al perfil, pero los endpoints siguen accesibles directamente. `sessionStorage` conserva solo la presentación del menú. El enlace «Olvidé mi contraseña» indica contactar al administrador; no recupera contraseñas automáticamente.
+### Sesiones con cookies
+
+El login usa `express-session` y `connect-mongo`. Al validar el correo y la contraseña se regenera el identificador de sesión, se guarda `usuarioId` en MongoDB y se redirige con `303` a `/web/menu`. La cookie `agrotec.sid` contiene únicamente el identificador firmado; no contiene credenciales ni roles.
+
+Las sesiones se almacenan en la colección `sesiones` de la misma base configurada para la aplicación. Caducan tras 30 minutos de inactividad; cada solicitud que utiliza una sesión válida renueva el plazo. MongoDB elimina los documentos vencidos mediante un índice TTL, y el almacén rechaza las sesiones vencidas aunque la limpieza todavía no haya ocurrido. Reiniciar Express conserva el acceso mientras se mantengan la base, el secreto y una sesión vigente.
+
+La cookie usa `httpOnly: true` y `sameSite: "strict"`. En desarrollo HTTP usa `secure: false`; con `NODE_ENV=production` exige HTTPS. Los POST, PUT y DELETE rechazan orígenes distintos y solicitudes que el navegador identifica como provenientes de otro sitio. Las herramientas HTTP sin cabecera Origin pueden utilizar la API enviando la cookie obtenida en el login.
+
+El menú se renderiza desde el perfil consultado en el servidor; no utiliza `sessionStorage`. En cada solicitud privada se verifica que la cuenta siga activa y se consultan sus roles actuales. `POST /auth/logout` destruye la sesión, borra la cookie y redirige al login. Las respuestas privadas usan `Cache-Control: no-store`.
+
+| Perfil | Acceso |
+| --- | --- |
+| Sin sesión | Login y ayuda de contraseña. Las vistas privadas redirigen a `/login`; la API responde `401`. |
+| Admin | ABM, asignaciones y consultas administrativas. |
+| Ingeniero | Sus pantallas de lotes, carga de observaciones con su identidad y consulta de sus observaciones en lotes actualmente asignados. Los endpoints administrativos quedan restringidos a Admin. |
+| Cliente | Menú de su perfil; reportes pendientes. |
+
+Una sesión válida sin los permisos necesarios recibe `403`. Las contraseñas existentes se conservan con PBKDF2. La recuperación automática de contraseñas sigue pendiente.
+
 
 ### Asignaciones y observaciones
 
@@ -77,6 +95,9 @@ La configuración predeterminada permite conectarse a MongoDB local sin definir 
 | --- | --- | --- |
 | `MONGODB_URI` | `mongodb://127.0.0.1:27017/agrotec` | Dirección de conexión y nombre de la base de datos. |
 | `PORT` | `3100` | Puerto HTTP de la aplicación. |
+| `SESSION_SECRET` | Obligatorio | Secreto aleatorio de al menos 32 caracteres para firmar la cookie. |
+| `NODE_ENV` | Sin definir | Usar `production` al publicar con HTTPS. |
+| `TRUST_PROXY` | `0` | `1` solo si hay exactamente un proxy de confianza delante de Express. |
 
 Para utilizar otros valores, configurar las variables antes de ejecutar los comandos de importación o inicio. Ejemplo en PowerShell:
 
@@ -84,6 +105,14 @@ Para utilizar otros valores, configurar las variables antes de ejecutar los coma
 $env:MONGODB_URI = "mongodb://127.0.0.1:27017/agrotec"
 $env:PORT = "3100"
 ```
+
+Antes de iniciar el servidor, generar el secreto en PowerShell (el comando lo asigna sin mostrarlo):
+
+```powershell
+$env:SESSION_SECRET = node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Para conservar sesiones entre reinicios, mantener el mismo secreto en una configuración privada o en las variables del proveedor de despliegue. Generar otro secreto invalida las cookies anteriores. Nunca incluir el valor real en Git. En producción configurar HTTPS y el proxy según la infraestructura elegida; no activar `TRUST_PROXY` indiscriminadamente.
 
 Las variables configuradas así pertenecen a esa sesión de PowerShell. `.env.example` muestra las opciones disponibles; la aplicación no carga archivos `.env` automáticamente.
 
@@ -107,7 +136,7 @@ npm start
 
 La aplicación queda disponible en [http://localhost:3100](http://localhost:3100), salvo que se configure otro puerto. Para reiniciarla, detener el proceso con `Ctrl+C` y volver a ejecutar `npm start`. La importación no se repite al iniciar; los datos se conservan en MongoDB.
 
-El servidor conecta a MongoDB y prepara validadores, índices y roles antes de aceptar solicitudes. No crea cuentas predeterminadas. Si la conexión falla, muestra un mensaje en consola y termina con código de salida 1. Revisar que MongoDB esté activo y que `MONGODB_URI` sea correcta.
+El servidor exige `SESSION_SECRET`, conecta a MongoDB y prepara validadores, índices, roles y el almacén de sesiones antes de aceptar solicitudes. No crea cuentas predeterminadas. Si la conexión falla, muestra un mensaje en consola y termina con código de salida 1. Revisar que MongoDB esté activo y que `MONGODB_URI` sea correcta.
 
 | Comando | Acción |
 | --- | --- |
@@ -118,7 +147,7 @@ El servidor conecta a MongoDB y prepara validadores, índices y roles antes de a
 | `npm run auth:preparar` | Opcional: prepara colecciones de autenticación y roles sin iniciar Express; también se preparan al arrancar. |
 | `npm test` | Ejecuta `node --test` con las pruebas HTTP y MongoDB de `tests/api.test.js`. |
 
-Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
+Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. Primero iniciar sesión con una cuenta Admin y conservar la cookie para ejecutar los ejemplos administrativos. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
 
 ## Pruebas automatizadas
 
@@ -132,7 +161,7 @@ Si PowerShell bloquea `npm.ps1`, usar `npm.cmd test`. El comando utiliza el ejec
 
 `tests/api.test.js` importa `app` sin iniciar automáticamente la aplicación, prepara sus propios datos y realiza solicitudes HTTP para comprobar CRUD, historial, filtros, relaciones, validaciones, logger, respuestas JSON y vistas HTML. Las observaciones conservan únicamente las operaciones de creación y consulta.
 
-La ejecución actual informa 14 pruebas aprobadas, contando la prueba principal y sus 13 subtests. La suite incorpora seis grupos de comprobaciones de validaciones y reglas de negocio:
+La suite de API conserva sus 14 pruebas, contando la prueba principal y sus 13 subtests. Se autentica con una cuenta Admin exclusiva de la base temporal. `tests/sesiones.test.js` agrega pruebas de cookies, permisos, aislamiento entre ingenieros, persistencia del almacén, regeneración del ID, cierre de sesión, vencimiento y desactivación de cuentas. La suite incorpora seis grupos de comprobaciones de validaciones y reglas de negocio:
 
 1. Omite cada campo obligatorio por separado y prueba tipos y valores inválidos en los cuerpos de creación y actualización.
 2. Comprueba las referencias de lotes y observaciones, y compara los documentos antes y después de las solicitudes rechazadas para detectar escrituras indebidas.
@@ -143,7 +172,7 @@ La ejecución actual informa 14 pruebas aprobadas, contando la prueba principal 
 
 Además se comprueban las cuentas vinculadas, el login, los lotes sin cliente, la fecha opcional y el rechazo de observaciones sin cuenta activa, sin asignación o con otro cultivo.
 
-Los casos de login incluidos comprueban credenciales correctas de las cuentas creadas. La suite no cubre todos los escenarios de credenciales incorrectas, cuentas inactivas o formato inválido, ni ejecuta la navegación y los scripts en un navegador. No verifica autorización por rol, porque esa funcionalidad aún no está implementada.
+Las pruebas verifican credenciales correctas e incorrectas, cuentas inactivas y autorización por rol. No ejecutan la navegación y los scripts en un navegador. El secreto de las pruebas se genera en cada proceso y no requiere configurar el secreto de la aplicación.
 
 Estas comprobaciones utilizan MongoDB real en la base temporal de la suite. Las comparaciones incluyen los datos almacenados, además de las respuestas HTTP.
 
@@ -168,8 +197,10 @@ Cada ejecución usa una base nueva con nombre `agrotec_test_<uuid>`. La suite no
 - `routes/`: endpoints de los recursos, autenticación y vistas.
 - `middleware/logger.js`: registro de fecha, método y URL de las solicitudes.
 - `middleware/auth.js`: validación de correo y contraseña del login.
+- `middleware/sesion.js`: autenticación, permisos y comprobación del origen de solicitudes.
+- `config/sesiones.js`: cookies y almacenamiento de sesiones en MongoDB.
 - `views/`: plantillas Pug de login, perfiles, ABM, asignaciones e historial.
-- `public/js/`: envío de formularios con fetch y presentación del menú.
+- `public/js/`: envío de formularios con fetch.
 - `services/`: creación de accesos y consultas de cuentas de ingenieros.
 - `utils/`: validaciones compartidas de correo y contraseña.
 - `data/`: archivos JSON con datos de ejemplo para importar.
@@ -345,7 +376,8 @@ Los IDs inválidos también devuelven 400 en PUT y DELETE. Cualquier operación 
 | --- | --- |
 | `200` | Consultas, actualizaciones y eliminaciones exitosas. Un listado sin coincidencias devuelve `[]`. |
 | `201` | Creación exitosa de un productor, técnico, lote, tipo de cultivo u observación. |
-| `401` | Credenciales incorrectas o cuenta inactiva al iniciar sesión. |
+| `401` | Credenciales incorrectas, cuenta inactiva o API privada sin sesión válida. |
+| `403` | Sesión sin permisos suficientes u origen de solicitud rechazado. |
 | `400` | Campos, tipos, valores, IDs o filtros inválidos; IDs duplicados; relaciones inexistentes al guardar; eliminaciones bloqueadas por dependencias. |
 | `404` | Recurso consultado, actualizado o eliminado inexistente; técnico inexistente en el filtro `tecnicoId`; ruta no disponible, incluidas las modificaciones o eliminaciones de observaciones. |
 | `409` | No se pudo crear una asignación de ingeniero a lote después de los reintentos por concurrencia. |
@@ -379,7 +411,8 @@ Las plantillas reciben datos mediante `res.render()`. Los formularios de alta y 
 | Método | URL | Función |
 | --- | --- | --- |
 | GET | /login | Formulario de ingreso. |
-| POST | /auth/login | Valida credenciales y cuenta activa; devuelve el perfil en HTML. |
+| POST | /auth/login | Valida credenciales, crea sesión y redirige con 303 al menú. |
+| POST | /auth/logout | Destruye la sesión y redirige con 303 al login. |
 | GET | /auth/olvide-password | Instrucciones para contactar al administrador. |
 | GET | /web/menu | Menú del perfil. |
 | GET | /web/productores | Listado de clientes y sus lotes. |
@@ -484,7 +517,7 @@ usuario=admin@prueba.com
 password=administrador123456789
 ```
 
-Las credenciales de ejemplo corresponden a la importación inicial. Una respuesta correcta es `200` con el perfil en HTML; un formato inválido devuelve `400` y credenciales incorrectas o cuenta inactiva devuelven `401`, también en HTML. La API acepta además un cuerpo JSON con esos mismos campos. No devuelve token ni crea una sesión.
+Las credenciales de ejemplo corresponden a la importación inicial. Una respuesta correcta es `303` con la cookie de sesión y redirección a `/web/menu` (si el cliente sigue la redirección, verá `200` con el perfil en HTML); un formato inválido devuelve `400` y credenciales incorrectas o cuenta inactiva devuelven `401`, también en HTML. La API acepta además un cuerpo JSON con esos mismos campos. No devuelve JWT: crea una sesión y envía su identificador en una cookie. Conservar y enviar esa cookie para probar los endpoints privados.
 
 **Crear acceso para una ficha importada sin cuenta:** PUT `/tecnicos/1` (para un productor, usar `/productores/1`):
 

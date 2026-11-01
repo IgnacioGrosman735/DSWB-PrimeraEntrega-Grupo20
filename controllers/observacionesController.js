@@ -7,6 +7,13 @@ const { cuentaIngenieroValida } = require("../services/cuentaIngeniero");
 
 const obtenerObservaciones = async (req, res, next) => {
     try {
+        if (req.filtroTecnicoSesion) {
+            const relaciones = await TecnicoTieneLote.find({ tecnicoId: req.filtroTecnicoSesion });
+            return res.json(await Observacion.find({
+                tecnicoId: req.filtroTecnicoSesion,
+                loteId: { $in: relaciones.map(r => r.loteId) }
+            }));
+        }
         if (req.query.tecnicoId !== undefined) {
             const id = Number(req.query.tecnicoId);
 

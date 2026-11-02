@@ -18,7 +18,9 @@ const { prepararColeccionesNegocio } = require("./config/coleccionesNegocio");
 const { prepararSesiones, validarSecreto } = require("./config/sesiones");
 const { protegerRuta, soloAdmin, protegerOrigen } = require("./middleware/sesion");
 const app = express();
-if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
+if (process.env.TRUST_PROXY === "1") {
+    app.set("trust proxy", 1);
+}
 const PORT = process.env.PORT || 3100;
 
 app.set("view engine", "pug");
@@ -28,8 +30,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 app.use("/js", express.static(path.join(__dirname, "public/js")));
 
+// Se registra antes de las rutas, pero se configura después de conectar MongoDB.
 app.use((req, res, next) => {
-    if (!app.locals.middlewareSesion) return next(new Error("Sesiones no inicializadas"));
+    if (!app.locals.middlewareSesion) {
+        return next(new Error("Sesiones no inicializadas"));
+    }
     app.locals.middlewareSesion(req, res, next);
 });
 app.use(protegerOrigen);
@@ -95,8 +100,11 @@ const iniciar = async () => {
             await cerrarDB();
         });
     } catch (error) {
-        console.error("El servidor HTTP no se inició:",
-            error.message.startsWith("Configurá SESSION_SECRET") ? error.message : error.name);
+        let detalle = error.name;
+        if (error.message.startsWith("Configurá SESSION_SECRET")) {
+            detalle = error.message;
+        }
+        console.error("El servidor HTTP no se inició:", detalle);
         process.exitCode = 1;
         await cerrarDB();
     }

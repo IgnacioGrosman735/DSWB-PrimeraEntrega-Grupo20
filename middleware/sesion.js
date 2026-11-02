@@ -6,8 +6,12 @@ const TecnicoTieneLote = require("../models/TecnicoTieneLote");
 const { nombreCookie, opcionesCookie } = require("../config/sesiones");
 
 function rechazar(req, res, estado, mensaje) {
-    if (/^\/web(?:\/|\?|$)/i.test(req.originalUrl)) {
-        if (estado === 401) return res.redirect("/login");
+    const ruta = req.originalUrl.split("?")[0].toLowerCase();
+    const esVista = ruta === "/web" || ruta.startsWith("/web/");
+    if (esVista) {
+        if (estado === 401) {
+            return res.redirect("/login");
+        }
         return res.status(estado).render("error", { mensaje });
     }
     return res.status(estado).json({ mensaje });
@@ -16,40 +20,80 @@ function rechazar(req, res, estado, mensaje) {
 async function protegerRuta(req, res, next) {
     try {
         res.set("Cache-Control", "no-store");
-        const usuario = req.session.usuarioId
-            ? await Usuario.findById(req.session.usuarioId)
-            : null;
+        // La sesión conserva el ID; los datos actuales se consultan en la base.
+        let usuario = null;
+        if (req.session.usuarioId) {
+            usuario = await Usuario.findById(req.session.usuarioId);
+        }
         if (!usuario || !usuario.activo) {
             if (req.session.usuarioId) {
-                await new Promise((resolve, reject) => req.session.destroy(error => error ? reject(error) : resolve()));
+                await new Promise((resolve, reject) => {
+                    req.session.destroy((error) => {
+                        if (error) {
+                            reject(error);
+                            return;
+                        }
+                        resolve();
+                    });
+                });
                 res.clearCookie(nombreCookie, opcionesCookie());
             }
             return rechazar(req, res, 401, "Debés iniciar sesión");
         }
         const relaciones = await UsuarioTieneRol.find({ usuarioId: usuario._id }).populate("rolId");
-        const roles = relaciones.filter(r => r.rolId).map(r => r.rolId.nombre);
-        const tecnico = roles.includes("Ingeniero")
-            ? await Tecnico.findOne({ usuarioId: usuario._id }) : null;
-        req.perfil = { usuarioId: usuario._id, nombre: usuario.nombre, roles, tecnicoId: tecnico?._id || null };
+        const roles = [];
+        for (const relacion of relaciones) {
+            if (relacion.rolId) {
+                roles.push(relacion.rolId.nombre);
+            }
+        }
+
+        let tecnicoId = null;
+        if (roles.includes("Ingeniero")) {
+            const tecnico = await Tecnico.findOne({ usuarioId: usuario._id });
+            if (tecnico) {
+                tecnicoId = tecnico._id;
+            }
+        }
+
+        // Los controladores reciben el perfil de esta solicitud en req.perfil.
+        req.perfil = {
+            usuarioId: usuario._id,
+            nombre: usuario.nombre,
+            roles: roles,
+            tecnicoId: tecnicoId
+        };
         next();
     } catch (error) {
         next(error);
     }
 }
 
-const soloAdmin = (req, res, next) => req.perfil.roles.includes("Admin")
-    ? next() : rechazar(req, res, 403, "No tenés permisos para realizar esta acción");
+function soloAdmin(req, res, next) {
+    if (!req.perfil.roles.includes("Admin")) {
+        return rechazar(req, res, 403, "No tenés permisos para realizar esta acción");
+    }
+    next();
+}
 
 function ingenieroPropio(req, res, next) {
-    if (req.perfil.roles.includes("Admin")) return next();
-    if (req.perfil.roles.includes("Ingeniero") && req.perfil.tecnicoId &&
-        Number(req.params.tecnicoId) === req.perfil.tecnicoId) return next();
+    if (req.perfil.roles.includes("Admin")) {
+        return next();
+    }
+    const esIngeniero = req.perfil.roles.includes("Ingeniero");
+    const tieneFicha = req.perfil.tecnicoId !== null;
+    const esSuFicha = Number(req.params.tecnicoId) === req.perfil.tecnicoId;
+    if (esIngeniero && tieneFicha && esSuFicha) {
+        return next();
+    }
     return rechazar(req, res, 403, "No tenés permisos para consultar este ingeniero");
 }
 
 async function autorizarObservaciones(req, res, next) {
     try {
-        if (req.perfil.roles.includes("Admin")) return next();
+        if (req.perfil.roles.includes("Admin")) {
+            return next();
+        }
         const tecnicoId = req.perfil.tecnicoId;
         if (!req.perfil.roles.includes("Ingeniero") || !tecnicoId) {
             return rechazar(req, res, 403, "No tenés permisos para consultar observaciones");
@@ -64,11 +108,20 @@ async function autorizarObservaciones(req, res, next) {
             }
             if (req.params.id) {
                 const observacion = await Observacion.findById(Number(req.params.id));
-                if (observacion && (observacion.tecnicoId !== tecnicoId ||
-                    !(await TecnicoTieneLote.exists({ tecnicoId, loteId: observacion.loteId })))) {
-                    return rechazar(req, res, 403, "Solo podés consultar observaciones de tus lotes asignados");
+                if (observacion) {
+                    if (observacion.tecnicoId !== tecnicoId) {
+                        return rechazar(req, res, 403, "Solo podés consultar observaciones de tus lotes asignados");
+                    }
+                    const asignacion = await TecnicoTieneLote.exists({
+                        tecnicoId: tecnicoId,
+                        loteId: observacion.loteId
+                    });
+                    if (!asignacion) {
+                        return rechazar(req, res, 403, "Solo podés consultar observaciones de tus lotes asignados");
+                    }
                 }
             }
+            // El controlador usará este ID para filtrar los resultados.
             req.filtroTecnicoSesion = tecnicoId;
         } else {
             return rechazar(req, res, 403, "No tenés permisos para realizar esta acción");
@@ -81,10 +134,14 @@ async function autorizarObservaciones(req, res, next) {
 
 // Los formularios y fetch de la aplicación trabajan en el mismo origen.
 function protegerOrigen(req, res, next) {
-    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
-    const origin = req.get("Origin");
-    if (req.get("Sec-Fetch-Site") === "cross-site" ||
-        (origin && origin !== `${req.protocol}://${req.get("host")}`)) {
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        return next();
+    }
+    const origenRecibido = req.get("Origin");
+    const origenAplicacion = `${req.protocol}://${req.get("host")}`;
+    const vieneDeOtroSitio = req.get("Sec-Fetch-Site") === "cross-site";
+    const origenDiferente = origenRecibido && origenRecibido !== origenAplicacion;
+    if (vieneDeOtroSitio || origenDiferente) {
         return res.status(403).json({ mensaje: "Origen de solicitud no permitido" });
     }
     next();

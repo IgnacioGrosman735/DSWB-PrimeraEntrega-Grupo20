@@ -8,6 +8,8 @@ html(lang="es")
         main#menu-perfil
             h1#bienvenida= nombre !== null ? 'Bienvenido, ' + nombre : 'Bienvenido'
             p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
+            p(hidden=!(roles.includes('Admin') || roles.includes('Ingeniero')))
+                a(href="/web/tablero") Tablero de estado de lotes
             div#opciones-admin(hidden=!roles.includes('Admin'))
                 p
                     a(href="/web/lotes") Administrar lotes

@@ -63,8 +63,10 @@ const pipelineEstado = [
     } }
 ];
 
-esquema.statics.obtenerEstadoActual = function () {
-    return this.aggregate(pipelineEstado);
+esquema.statics.obtenerEstadoActual = function (idsLotes) {
+    // Sin ids: todos los lotes (Admin). Con ids: solo esos (Ingeniero).
+    const filtro = idsLotes ? [{ $match: { _id: { $in: idsLotes } } }] : [];
+    return this.aggregate([...filtro, ...pipelineEstado]);
 };
 
 module.exports = mongoose.model("Lote", esquema, "lotes");

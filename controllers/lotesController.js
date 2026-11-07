@@ -162,6 +162,20 @@ const mostrarLote = async (req, res, next) => {
     }
 };
 
+const mostrarTablero = async (req, res, next) => {
+    try {
+        const { roles, tecnicoId } = req.perfil;
+        let idsLotes; // undefined: el Admin ve todos los lotes.
+        if (!roles.includes("Admin")) {
+            const asignaciones = await TecnicoTieneLote.find({ tecnicoId });
+            idsLotes = asignaciones.map((asignacion) => asignacion.loteId);
+        }
+        res.render("tablero", { lotes: await Lote.obtenerEstadoActual(idsLotes) });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const obtenerHistorial = async (req, res, next) => {
     try {
         const id = Number(req.params.id);
@@ -195,5 +209,6 @@ module.exports = {
     obtenerHistorial,
     obtenerEstadoLotes,
     mostrarLotes,
-    mostrarLote
+    mostrarLote,
+    mostrarTablero
 };

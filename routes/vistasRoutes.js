@@ -1,5 +1,5 @@
 const express = require("express");
-const { mostrarLotes, mostrarLote } = require("../controllers/lotesController");
+const { mostrarLotes, mostrarLote, mostrarTablero } = require("../controllers/lotesController");
 const { mostrarTecnicos, mostrarTecnico } = require("../controllers/tecnicosController");
 const {
     mostrarLotesIngeniero,
@@ -15,6 +15,7 @@ router.get("/ingenieros/:tecnicoId/lotes/:loteId/observaciones", mostrarCargaObs
 router.get("/menu", (req, res) =>
     res.render("perfil", req.perfil)
 );
+router.get("/tablero", mostrarTablero);
 router.use(soloAdmin);
 const {
     mostrarFormulario,

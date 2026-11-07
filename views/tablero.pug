@@ -1,0 +1,45 @@
+doctype html
+html(lang="es")
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Tablero de lotes — AgroTec
+        include includes/estilosTabla
+        style.
+            .nivel { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: bold; }
+            .nivel-critico { background: #fbe0e0; color: #8a1c1c; }
+            .nivel-atencion { background: #fdf0d2; color: #7a4f00; }
+            .nivel-sin-datos { background: #e8e8e8; color: #444; }
+            .nivel-normal { background: #def2e5; color: #1d5c37; }
+    body
+        include includes/navegacionAbm
+        h1 Tablero de lotes
+        - const claseNivel = { "Crítico": "nivel-critico", "Atención": "nivel-atencion", "Sin datos": "nivel-sin-datos", "Normal": "nivel-normal" }
+        if lotes.length
+            .tabla-contenedor
+                table.tabla-abm
+                    caption Estado según la última observación cargada, de lo más urgente a lo más estable
+                    thead
+                        tr
+                            th(scope="col") Lote
+                            th(scope="col") Estado
+                            th(scope="col") Última observación
+                            th(scope="col") Estado del cultivo
+                            th(scope="col") Ubicación
+                            th(scope="col") Hectáreas
+                            th(scope="col") Productor
+                            th(scope="col") Cultivo
+                    tbody
+                        each lote in lotes
+                            tr
+                                td= lote._id
+                                td
+                                    span.nivel(class=claseNivel[lote.nivelActual])= lote.nivelActual
+                                td= lote.fechaUltima || "—"
+                                td= lote.estadoCultivo || "—"
+                                td= lote.ubicacion
+                                td= lote.hectareas
+                                td= lote.productor || "—"
+                                td= lote.cultivo || "—"
+        else
+            p No hay lotes para mostrar.

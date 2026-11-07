@@ -1,0 +1,61 @@
+style.
+    /* Va primero: si otra regla le da display a un elemento con hidden, vuelve a verse. */
+    [hidden] { display: none !important; }
+
+    body { max-width: 1100px; margin: 0 auto; padding: 24px 16px; font-family: Arial, sans-serif; line-height: 1.5; color: #1f2d27; }
+    h1 { margin: 16px 0; font-size: 1.6rem; color: #163c2c; }
+    h2 { margin: 24px 0 12px; font-size: 1.2rem; color: #163c2c; }
+    a { color: #163c2c; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #27845d; outline-offset: 2px; }
+
+    /* Enlaces de acción sueltos (Crear, Volver, Ver en JSON, Cancelar): forma de etiqueta, distinta de los botones. */
+    body > a, main > a, form > a { display: inline-block; margin: 4px 8px 12px 0; padding: 6px 14px; border-radius: 999px; background: #e6f0ea; color: #163c2c; font-weight: bold; text-decoration: none; }
+    body > a:hover, main > a:hover, form > a:hover { background: #d3e6db; }
+
+    main { max-width: 480px; margin: 40px auto; padding: 24px; border: 1px solid #ddd; border-radius: 8px; }
+
+    #menu-perfil p > a { display: block; padding: 12px 16px; border: 1px solid #ddd; border-left: 4px solid #27845d; border-radius: 6px; color: #163c2c; font-weight: bold; text-decoration: none; }
+    #menu-perfil p > a:hover { background: #f0f5f2; }
+    #menu-perfil p > a::after { content: "›" / ""; float: right; }
+
+    label { display: block; margin-bottom: 4px; font-weight: bold; }
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), select, textarea { box-sizing: border-box; width: 100%; max-width: 420px; padding: 8px 10px; border: 1px solid #bbb; border-radius: 4px; font: inherit; }
+    form p, form div { margin: 0 0 14px; }
+
+    button { padding: 8px 14px; border: 1px solid #163c2c; border-radius: 4px; background: #163c2c; color: white; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+    button[data-eliminar] { background: white; color: #a12525; border-color: #a12525; }
+
+    form[action="/web/menu"], form[action="/auth/logout"] { display: inline-block; margin: 0 8px 8px 0; }
+    form[action="/web/menu"] button, form[action="/auth/logout"] button { background: white; color: #163c2c; }
+
+    [role="alert"] { padding: 10px 14px; border-left: 4px solid #a12525; background: #fbe0e0; color: #8a1c1c; }
+    #mensaje { margin: 8px 0; }
+    /* Vacío no ocupa lugar, pero sigue en la página para que los lectores de pantalla anuncien los mensajes. */
+    #mensaje:empty { margin: 0; }
+
+    body > ul { padding-left: 0; list-style: none; }           
+    body > ul > li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #ddd; }
+    body > ul > li > span { flex: 1; }
+    body > ul > li > a { padding: 7px 12px; border: 1px solid #777; border-radius: 4px; background: white; color: #163c2c; text-decoration: none; }
+    body > ul > li > button { padding: 7px 12px; }
+
+    .tabla-contenedor { overflow-x: auto; margin: 20px 0; }
+    .tabla-abm { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }
+    .tabla-abm caption { text-align: left; font-weight: bold; padding: 12px 0; }
+    .tabla-abm th, .tabla-abm td { padding: 12px 16px; border-bottom: 1px solid #ddd; text-align: left; vertical-align: top; }
+    .tabla-abm th { background: #f0f5f2; }
+    .tabla-abm tbody tr:hover { background: #f8faf9; }
+    .tabla-abm .acciones { text-align: right; white-space: nowrap; }
+    .tabla-abm .acciones > * + * { margin-left: 8px; }
+    .boton-editar, .tabla-abm button { display: inline-block; padding: 7px 12px; border: 1px solid #777; border-radius: 4px; background: white; color: #163c2c; font: inherit; cursor: pointer; text-decoration: none; }
+    .tabla-abm button { color: #a12525; border-color: #a12525; }
+    .tabla-abm button:disabled { opacity: .5; cursor: wait; }
+    .tabla-abm a:focus-visible, .tabla-abm button:focus-visible { outline: 3px solid #27845d; outline-offset: 3px; }
+    .lotes-asignados { margin: 0; padding-left: 18px; }
+
+    .nivel { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: bold; }
+    .nivel-critico { background: #fbe0e0; color: #8a1c1c; }
+    .nivel-atencion { background: #fdf0d2; color: #7a4f00; }
+    .nivel-sin-datos { background: #e8e8e8; color: #444; }
+    .nivel-normal { background: #def2e5; color: #1d5c37; }

@@ -4,6 +4,7 @@ html(lang="es")
         meta(charset="utf-8")
         meta(name="viewport" content="width=device-width, initial-scale=1")
         title Tipos de cultivo
+        include includes/estilos
     body
         include includes/navegacionAbm
         h1 Tipos de cultivo
@@ -13,7 +14,6 @@ html(lang="es")
                 each cultivo in cultivos
                     li
                         span #{cultivo._id} — #{cultivo.nombre}
-                        |  ·
                         a(href="/web/tipos-cultivo/" + cultivo._id + "/editar") Editar
                         |
                         button(type="button" data-eliminar="/tipos-cultivo/" + cultivo._id) Eliminar

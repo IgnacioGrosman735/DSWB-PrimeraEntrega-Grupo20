@@ -175,6 +175,14 @@ const obtenerHistorial = async (req, res, next) => {
     }
 };
 
+const obtenerEstadoLotes = async (req, res, next) => {
+    try {
+        res.json(await Lote.obtenerEstadoActual());
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     obtenerLotes,
     obtenerLotePorId,
@@ -185,6 +193,7 @@ module.exports = {
     actualizarLote,
     eliminarLote,
     obtenerHistorial,
+    obtenerEstadoLotes,
     mostrarLotes,
     mostrarLote
 };

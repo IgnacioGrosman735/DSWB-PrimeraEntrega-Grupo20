@@ -4,6 +4,7 @@ const {
     obtenerLotes,
     obtenerHistorial,
     obtenerLotePorId,
+    obtenerEstadoLotes,
     crearLote,
 
     cargarLote,
@@ -22,6 +23,7 @@ const {
 } = require("../middleware/validaciones/lotes");
 
 router.get("/", validarAlerta, obtenerLotes);
+router.get("/estado", obtenerEstadoLotes);
 router.get("/:id/observaciones", validarId, obtenerHistorial);
 router.get("/:id", validarId, obtenerLotePorId);
 

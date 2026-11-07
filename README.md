@@ -173,6 +173,8 @@ La suite de API conserva sus 14 pruebas, contando la prueba principal y sus 13 s
 
 Además se comprueban las cuentas vinculadas, el login, los lotes sin cliente, la fecha opcional y el rechazo de observaciones sin cuenta activa, sin asignación o con otro cultivo.
 
+`tests/estadoLotes.test.js` comprueba el estado actual de los lotes con cinco casos: observación más reciente por fecha, desempate por `_id`, exclusión de las pendientes, observación histórica sin campo `estado` (insertada sin Mongoose para reproducir los datos importados antes de ese campo) y lote sin observaciones. Verifica además el orden por prioridad, el filtro por lotes, que `/lotes/estado` exija sesión y no sea capturada por la ruta `/:id`, y que el Ingeniero vea en el tablero solo sus lotes asignados.
+
 Las pruebas verifican credenciales correctas e incorrectas, cuentas inactivas y autorización por rol. No ejecutan la navegación y los scripts en un navegador. El secreto de las pruebas se genera en cada proceso y no requiere configurar el secreto de la aplicación.
 
 Estas comprobaciones utilizan MongoDB real en la base temporal de la suite. Las comparaciones incluyen los datos almacenados, además de las respuestas HTTP.
@@ -213,6 +215,7 @@ Cada ejecución usa una base nueva con nombre `agrotec_test_<uuid>`. La suite no
 - `middleware/validaciones/lotes.js`: validación de los cuerpos de creación y actualización parcial.
 - `middleware/validaciones/observaciones.js`: validación del cuerpo de creación.
 - `tests/api.test.js`: pruebas de regresión de endpoints, validaciones, relaciones, logger y manejo de errores.
+- `tests/estadoLotes.test.js`: pruebas del estado actual de los lotes, de la ruta `/lotes/estado` y del tablero por perfil.
 
 Las rutas ejecutan los middleware de validación y delegan las operaciones en los controladores. Los validadores comprueban parámetros, filtros y cuerpos; los controladores consultan MongoDB, comprueban relaciones y dependencias y realizan las operaciones mediante los modelos Mongoose con `async/await`. Los modelos conservan sus validaciones al guardar, también para la importación. La API y las vistas utilizan MongoDB; los archivos JSON solo se leen durante la importación.
 
@@ -350,6 +353,7 @@ Base: `http://localhost:3100`. En POST y PUT seleccionar Body JSON y el header `
 | PUT | /tecnicos/:id | ID de ruta | T2 | 200, mensaje y técnico | 400 datos inválidos; 404 inexistente |
 | DELETE | /tecnicos/:id | ID de ruta | No | 200, mensaje | 400 si posee observaciones o asignaciones; 404 inexistente |
 | GET | /lotes | alerta opcional | No | 200, arreglo de lotes | 400 alerta inválida |
+| GET | /lotes/estado | Ninguno | No | 200, lotes con su nivel vigente, ordenados por prioridad | 401 sin sesión; 403 sin rol Admin |
 | GET | /lotes/:id | ID de ruta | No | 200, lote | 400 ID inválido; 404 inexistente |
 | POST | /lotes | Ninguno | L1 | 201, mensaje y lote | 400 datos, ID duplicado o relación inexistente |
 | PUT | /lotes/:id | ID de ruta | L2 | 200, mensaje y lote | 400 datos o relación inválida; 404 inexistente |
@@ -417,6 +421,7 @@ Las plantillas reciben datos mediante `res.render()`. Los formularios de alta y 
 | POST | /auth/logout | Destruye la sesión y redirige con 303 al login. |
 | GET | /auth/olvide-password | Instrucciones para contactar al administrador. |
 | GET | /web/menu | Menú del perfil. |
+| GET | /web/tablero | Tablero de estado de lotes: todos para Admin, solo los asignados para Ingeniero. |
 | GET | /web/productores | Listado de clientes y sus lotes. |
 | GET | /web/tipos-cultivo | Listado de cultivos. |
 | GET | /web/{recurso}/nuevo | Formulario de alta. |
@@ -685,6 +690,18 @@ Al intentar DELETE `/tecnicos/1`, estado 400:
 Para los filtros usar la pestaña Params de Postman/ThunderClient; la herramienta codifica las tildes de la URL. Las consultas utilizan `req.query` y los detalles e historial utilizan `req.params`. El parámetro debe escribirse exactamente `tecnicoId`, con I mayúscula: `tecnicoid` no activa el filtro.
 
 Con los datos incluidos, antes de agregar nuevas observaciones, el historial del lote 1 contiene las observaciones 1 y 4; el filtro por alerta `Crítico` devuelve el lote 3; y el filtro por técnico 1 devuelve las observaciones 1, 3 y 5. El lote 3 aparece en la consulta de alerta crítica aunque su observación posterior tenga nivel `Atención`, porque se consulta todo el historial.
+
+## Estado actual de los lotes
+
+GET `/lotes/estado` (Admin) y la vista `/web/tablero` (Admin e Ingeniero) muestran el nivel vigente de cada lote: el `nivelAlerta` de su observación más reciente. Complementan a `/lotes?alerta=`, que busca en todo el historial: con los datos de ejemplo, el lote 3 aparece en `?alerta=Crítico` por una observación anterior, pero su estado actual es `Atención`.
+
+- Se toma la observación con fecha más reciente; ante la misma fecha, la de `_id` mayor.
+- Las observaciones `Pendiente` no definen el estado. Las históricas sin campo `estado` se consideran cargadas, igual que en el modelo.
+- Los lotes sin observaciones figuran como `Sin datos`; no se omiten.
+- Orden: `Crítico`, `Atención`, `Sin datos` y `Normal`; dentro de cada nivel, por número de lote.
+- El Admin ve todos los lotes y el Ingeniero solo los asignados. Cualquier otro perfil recibe el tablero vacío.
+
+La consulta es una agregación de MongoDB definida en `models/Lote.js` como método estático, `Lote.obtenerEstadoActual(idsLotes)`, compartida por la API y la vista. El filtro por lotes se aplica antes de los `$lookup`, para no buscar observaciones de lotes ajenos.
 
 ## Integrantes y responsabilidades
 

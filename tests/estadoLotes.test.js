@@ -110,11 +110,12 @@ test("estado actual de los lotes y tablero", { timeout: 60000 }, async (t) => {
         assert.equal((await Lote.obtenerEstadoActual()).length, 5);
     });
 
-    // Usuarios para las pruebas HTTP: un Admin y un Ingeniero con los lotes 3 y 5.
+    // Usuarios para las pruebas HTTP: un Admin, un Ingeniero con los lotes 3 y 5,
+    // un Cliente dueño de los lotes 2 y 4, y un Cliente sin ficha de productor.
     process.env.SESSION_SECRET = randomUUID() + randomUUID();
     await require("../config/sesiones").prepararSesiones(app);
     const password = "ClaveDePrueba123456";
-    for (const [id, rolId] of [[900001, 1], [900002, 2]]) {
+    for (const [id, rolId] of [[900001, 1], [900002, 2], [900003, 3], [900004, 3]]) {
         await Usuario.create({
             _id: id, nombre: "Usuario " + id, usuario: `u${id}@prueba.test`,
             ...await Usuario.crearPasswordSeguro(password), activo: true
@@ -126,6 +127,8 @@ test("estado actual de los lotes y tablero", { timeout: 60000 }, async (t) => {
         { _id: 1, tecnicoId: 1, loteId: 3 },
         { _id: 2, tecnicoId: 1, loteId: 5 }
     ]);
+    await Productor.create({ _id: 2, nombre: "Cliente de prueba", usuarioId: 900003 });
+    await Lote.updateMany({ _id: { $in: [2, 4] } }, { productorId: 2 });
 
     servidor = app.listen(0, "127.0.0.1");
     await once(servidor, "listening");
@@ -166,5 +169,23 @@ test("estado actual de los lotes y tablero", { timeout: 60000 }, async (t) => {
             (coincidencia) => coincidencia[1]
         );
         assert.deepEqual(filas, ["Sin datos", "Normal"]);
+    });
+
+    // Lotes del tablero, en el orden en que aparecen en el HTML.
+    const lotesDelTablero = (html) =>
+        [...html.matchAll(/<tr><td>(\d+)<\/td><td><span class="nivel/g)].map((fila) => Number(fila[1]));
+
+    await t.test("GET /web/tablero: el cliente ve solo los lotes de su ficha", async () => {
+        const respuesta = await pedir("/web/tablero", await iniciarSesion("u900003@prueba.test"));
+        assert.equal(respuesta.status, 200);
+        assert.deepEqual(lotesDelTablero(await respuesta.text()), [2, 4]);
+    });
+
+    await t.test("GET /web/tablero: un cliente sin ficha no ve lotes", async () => {
+        const respuesta = await pedir("/web/tablero", await iniciarSesion("u900004@prueba.test"));
+        assert.equal(respuesta.status, 200);
+        const html = await respuesta.text();
+        assert.deepEqual(lotesDelTablero(html), []);
+        assert.match(html, /No hay lotes para mostrar/);
     });
 });

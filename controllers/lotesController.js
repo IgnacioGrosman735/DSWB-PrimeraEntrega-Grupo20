@@ -164,11 +164,21 @@ const mostrarLote = async (req, res, next) => {
 
 const mostrarTablero = async (req, res, next) => {
     try {
-        const { roles, tecnicoId } = req.perfil;
-        let idsLotes; // undefined: el Admin ve todos los lotes.
+        const { roles, tecnicoId, usuarioId } = req.perfil;
+        let idsLotes; // El Admin ve todos los lotes.
         if (!roles.includes("Admin")) {
-            const asignaciones = await TecnicoTieneLote.find({ tecnicoId });
-            idsLotes = asignaciones.map((asignacion) => asignacion.loteId);
+            idsLotes = []; // Cualquier otro perfil ve solo lo que se le agregue acá.
+            if (roles.includes("Ingeniero")) {
+                const asignaciones = await TecnicoTieneLote.find({ tecnicoId });
+                idsLotes.push(...asignaciones.map((asignacion) => asignacion.loteId));
+            }
+            if (roles.includes("Cliente")) {
+                const productor = await Productor.findOne({ usuarioId });
+                if (productor) {
+                    const lotes = await Lote.find({ productorId: productor._id }, { _id: 1 });
+                    idsLotes.push(...lotes.map((lote) => lote._id));
+                }
+            }
         }
         res.render("tablero", { lotes: await Lote.obtenerEstadoActual(idsLotes) });
     } catch (error) {

@@ -9,7 +9,7 @@ html(lang="es")
         main#menu-perfil
             h1#bienvenida= nombre !== null ? 'Bienvenido, ' + nombre : 'Bienvenido'
             p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
-            p(hidden=!(roles.includes('Admin') || roles.includes('Ingeniero')))
+            p(hidden=!(roles.includes('Admin') || roles.includes('Ingeniero') || roles.includes('Cliente')))
                 a(href="/web/tablero") Tablero de estado de lotes
             div#opciones-admin(hidden=!roles.includes('Admin'))
                 p
@@ -23,6 +23,6 @@ html(lang="es")
             div#opciones-ingeniero(hidden=!(roles.includes('Ingeniero') && tecnicoId))
                 p
                     a#mis-lotes(href=tecnicoId ? '/web/ingenieros/' + tecnicoId + '/lotes' : undefined) Mis lotes y observaciones
-            p#aviso-perfil(hidden=roles.includes('Admin') || (roles.includes('Ingeniero') && tecnicoId))= nombre === null ? 'Ingresá desde el login para mostrar tu perfil.' : roles.includes('Ingeniero') ? 'El administrador debe vincular tu cuenta a una ficha técnica para cargar observaciones.' : 'El perfil de clientes se incorporará en una próxima etapa.'
+                p#aviso-perfil(hidden=roles.includes('Admin') || (roles.includes('Ingeniero') && tecnicoId))= nombre === null ? 'Ingresá desde el login para mostrar tu perfil.' : roles.includes('Ingeniero') ? 'El administrador debe vincular tu cuenta a una ficha técnica para cargar observaciones.' : roles.includes('Cliente') ? 'Consultá el estado de tus lotes en el tablero.' : 'Tu cuenta no tiene un rol asignado. Contactá al administrador.'
             form(action="/auth/logout" method="POST")
                 button(type="submit") Cerrar sesión

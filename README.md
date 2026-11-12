@@ -173,7 +173,7 @@ La suite de API conserva sus 14 pruebas, contando la prueba principal y sus 13 s
 
 Además se comprueban las cuentas vinculadas, el login, los lotes sin cliente, la fecha opcional y el rechazo de observaciones sin cuenta activa, sin asignación o con otro cultivo.
 
-`tests/estadoLotes.test.js` comprueba el estado actual de los lotes con cinco casos: observación más reciente por fecha, desempate por `_id`, exclusión de las pendientes, observación histórica sin campo `estado` (insertada sin Mongoose para reproducir los datos importados antes de ese campo) y lote sin observaciones. Verifica además el orden por prioridad, el filtro por lotes, que `/lotes/estado` exija sesión y no sea capturada por la ruta `/:id`, y que el Ingeniero vea en el tablero solo sus lotes asignados.
+`tests/estadoLotes.test.js` comprueba el estado actual de los lotes con cinco casos: observación más reciente por fecha, desempate por `_id`, exclusión de las pendientes, observación histórica sin campo `estado` (insertada sin Mongoose para reproducir los datos importados antes de ese campo) y lote sin observaciones. Verifica además el orden por prioridad, el filtro por lotes, que `/lotes/estado` exija sesión y no sea capturada por la ruta `/:id`, y que en el tablero el Ingeniero vea solo sus lotes asignados, el Cliente solo los de su ficha de productor, y un Cliente sin ficha ninguno.
 
 Las pruebas verifican credenciales correctas e incorrectas, cuentas inactivas y autorización por rol. No ejecutan la navegación y los scripts en un navegador. El secreto de las pruebas se genera en cada proceso y no requiere configurar el secreto de la aplicación.
 
@@ -421,7 +421,7 @@ Las plantillas reciben datos mediante `res.render()`. Los formularios de alta y 
 | POST | /auth/logout | Destruye la sesión y redirige con 303 al login. |
 | GET | /auth/olvide-password | Instrucciones para contactar al administrador. |
 | GET | /web/menu | Menú del perfil. |
-| GET | /web/tablero | Tablero de estado de lotes: todos para Admin, solo los asignados para Ingeniero. |
+| GET | /web/tablero | Tablero de estado de lotes: todos para Admin, los asignados para Ingeniero y los de su ficha de productor para Cliente. |
 | GET | /web/productores | Listado de clientes y sus lotes. |
 | GET | /web/tipos-cultivo | Listado de cultivos. |
 | GET | /web/{recurso}/nuevo | Formulario de alta. |
@@ -693,13 +693,13 @@ Con los datos incluidos, antes de agregar nuevas observaciones, el historial del
 
 ## Estado actual de los lotes
 
-GET `/lotes/estado` (Admin) y la vista `/web/tablero` (Admin e Ingeniero) muestran el nivel vigente de cada lote: el `nivelAlerta` de su observación más reciente. Complementan a `/lotes?alerta=`, que busca en todo el historial: con los datos de ejemplo, el lote 3 aparece en `?alerta=Crítico` por una observación anterior, pero su estado actual es `Atención`.
+GET `/lotes/estado` (Admin) y la vista `/web/tablero` ((Admin, Ingeniero y Cliente)) muestran el nivel vigente de cada lote: el `nivelAlerta` de su observación más reciente. Complementan a `/lotes?alerta=`, que busca en todo el historial: con los datos de ejemplo, el lote 3 aparece en `?alerta=Crítico` por una observación anterior, pero su estado actual es `Atención`.
 
 - Se toma la observación con fecha más reciente; ante la misma fecha, la de `_id` mayor.
 - Las observaciones `Pendiente` no definen el estado. Las históricas sin campo `estado` se consideran cargadas, igual que en el modelo.
 - Los lotes sin observaciones figuran como `Sin datos`; no se omiten.
 - Orden: `Crítico`, `Atención`, `Sin datos` y `Normal`; dentro de cada nivel, por número de lote.
-- El Admin ve todos los lotes y el Ingeniero solo los asignados. Cualquier otro perfil recibe el tablero vacío.
+- El Admin ve todos los lotes; el Ingeniero, los asignados; y el Cliente, los vinculados a su ficha de productor (`Lote.productorId`). Los roles se suman: una cuenta con varios ve la unión de sus lotes. Cualquier otro perfil, o un Cliente sin ficha, recibe el tablero vacío.
 
 La consulta es una agregación de MongoDB definida en `models/Lote.js` como método estático, `Lote.obtenerEstadoActual(idsLotes)`, compartida por la API y la vista. El filtro por lotes se aplica antes de los `$lookup`, para no buscar observaciones de lotes ajenos.
 

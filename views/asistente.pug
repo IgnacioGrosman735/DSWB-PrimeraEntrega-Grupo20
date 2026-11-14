@@ -1,0 +1,27 @@
+doctype html
+html(lang="es")
+    head
+        meta(charset="utf-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        title Agrobot — AgroTec
+        include includes/estilos
+        script(src="/js/asistente.js" defer)
+    body
+        main
+            a(href="/web/menu") Volver al menú
+            h1 Agrobot
+            p Para consultar el tiempo, probá «¿Hay alerta meteorológica para el lote 1?» o «Lotes con alertas meteorológicas».
+            p
+                a(href="/web/tablero") Ver tablero de lotes
+            p Probá «¿Qué lotes requieren atención hoy?» o «¿Qué lotes llevan más de 15 días sin observaciones?».
+            if roles && (roles.includes("Admin") || roles.includes("Ingeniero"))
+                p Para comparar revisiones, preguntá «¿Qué cambió desde la última revisión del lote 12?» y usá el número de tu lote.
+            form#formulario-asistente(action="/web/asistente" method="POST")
+                p
+                    label(for="pregunta") ¿Qué querés consultar?
+                p
+                    textarea#pregunta(name="pregunta" rows="4" required maxlength=limitePregunta)= pregunta
+                button(type="submit") Consultar
+            p#estado-asistente(role="status")
+            p#error-asistente(role="alert")= error
+            p#respuesta-asistente(aria-live="polite" style="white-space: pre-wrap")= respuesta

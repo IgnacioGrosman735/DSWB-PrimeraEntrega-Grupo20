@@ -150,6 +150,55 @@ El servidor exige `SESSION_SECRET`, conecta a MongoDB y prepara validadores, ín
 
 Los endpoints pueden probarse con Postman o Thunder Client utilizando los ejemplos de este documento. Primero iniciar sesión con una cuenta Admin y conservar la cookie para ejecutar los ejemplos administrativos. La prueba de persistencia consiste en crear datos, detener el servidor con Ctrl+C, volver a ejecutar npm start con la misma base y consultar los registros sin repetir la importación.
 
+## Agrobot
+
+Agrobot es el asistente web de AgroTec para consultar el estado de los lotes, dar seguimiento a las observaciones y revisar los avisos meteorológicos. Usa la sesión iniciada y las reglas de acceso del tablero. Abrilo desde **Asistente de AgroTec** en el menú o desde `/web/asistente`.
+
+### Puesta en marcha
+
+1. Completá la instalación de AgroTec, iniciá MongoDB y verificá que podés ingresar con una cuenta activa. Si vas a usar una base vacía para la demostración, seguí la sección de carga inicial.
+2. Para habilitar las preguntas que requieren Gemini, completá estas variables en el archivo local `.env`. La plantilla `.env.example` las incluye vacías y Git ignora `.env`.
+
+   ```dotenv
+   GEMINI_API_KEY=
+   GEMINI_MODEL=
+   ```
+
+   En `GEMINI_API_KEY` colocá la clave de tu proyecto y en `GEMINI_MODEL`, el identificador de un modelo de generación de texto habilitado para esa clave. [Claves de Google AI Studio](https://aistudio.google.com/apikey)
+
+3. Reiniciá el servidor con `npm run dev`, iniciá sesión y abrí el asistente. Para probar Gemini, preguntá «¿Qué significa Sin datos en el tablero?». Las consultas reconocidas de seguimiento y meteorología funcionan sin configurar Gemini. Las meteorológicas requieren conexión a Georef Argentina y Open-Meteo.
+
+### Consultas disponibles
+
+| Pregunta de ejemplo | Resultado |
+| --- | --- |
+| ¿Hay alerta meteorológica para el lote 1? | Muestra los avisos de AgroTec y la probabilidad máxima de precipitación para las próximas 24 horas según Open-Meteo. |
+| Lotes con alertas o Lotes con alertas meteorológicas | Lista los lotes visibles con avisos previstos e indica cuáles quedaron sin pronóstico disponible. |
+| ¿Qué lotes requieren atención hoy? | Agrupa los lotes visibles por Crítico, Atención y Sin datos. El nivel vigente surge de la última observación cargada, aunque sea anterior a hoy. |
+| ¿Qué lotes llevan más de 15 días sin observaciones? | Lista los lotes que superan estrictamente el plazo, de la observación más antigua a la más reciente. Muestra aparte los lotes sin observaciones cargadas. |
+| ¿Qué cambió desde la última revisión del lote 1? | Compara las dos últimas observaciones autorizadas y muestra la fecha, el nivel de alerta, el estado del cultivo y el comentario registrado. |
+| ¿Qué ha cambiado en el lote 1 en los últimos 15 días? | Muestra las observaciones autorizadas del período e indica los cambios de nivel. Si hay una sola observación, muestra su detalle y avisa que hacen falta dos para comparar. |
+| ¿El lote 1 tuvo una alerta crítica este mes? | Cuenta las observaciones críticas autorizadas desde el primer día del mes hasta hoy. |
+| Lotes en Atención en los últimos 7 días | Filtra por fecha de la última observación cargada antes de enviar a Gemini los lotes del período. |
+
+Agrobot y el tablero comparten el pronóstico por localidad. Los avisos se calculan en AgroTec a partir del pronóstico de Open-Meteo para las próximas 24 horas. Pueden indicar tormentas, lluvia intensa, ráfagas fuertes o riesgo de heladas. La probabilidad de precipitación que muestra la consulta por lote es el mayor porcentaje horario del período. Cuando falta el pronóstico de una localidad, Agrobot identifica ese lote por separado. [Detalles del pronóstico en el tablero](#estado-actual-de-los-lotes)
+
+Los períodos de «últimos N días» de las consultas de seguimiento cuentan días calendario e incluyen hoy, con fecha de Buenos Aires. Las consultas históricas omiten las observaciones pendientes. La última fila de la tabla usa Gemini con los lotes filtrados en el servidor. Las demás consultas de ejemplo se resuelven en AgroTec.
+
+### Permisos y límites
+
+| Rol | Lotes visibles para estado y clima | Historial consultable en Agrobot |
+| --- | --- | --- |
+| Admin | Todos los lotes. | Las observaciones cargadas del lote solicitado. |
+| Ingeniero | Lotes que tiene asignados. | Sus propias observaciones cargadas en el lote asignado. |
+| Cliente | Lotes vinculados a su ficha de productor. | El estado vigente y la fecha de la última observación se consultan desde el tablero. |
+
+Agrobot admite preguntas de hasta 500 caracteres tras quitar los espacios de los extremos y aplica un límite de cinco consultas por minuto por usuario, en memoria por proceso. Para las consultas que usan Gemini, AgroTec envía la pregunta, los roles de la sesión, la fecha actual y el identificador, nivel vigente y fecha de última observación de los lotes visibles. La espera de Gemini tiene un límite de 15 segundos. La pantalla informa si falta configurar la clave o el modelo, si se agotó el tiempo o si falló el proveedor.
+
+El asistente es de solo lectura. La carga de observaciones se realiza desde **Mis lotes y observaciones**. El seguimiento funciona a pedido desde el chat.
+
+Para verificar el flujo del asistente, ejecutá `node --test tests/asistente.test.js`. La prueba usa HTTP local, sesiones en memoria y simula Gemini y las consultas a MongoDB.
+
 ## Pruebas automatizadas
 
 Con MongoDB en ejecución y las dependencias instaladas, ejecutar:
@@ -692,6 +741,10 @@ Para los filtros usar la pestaña Params de Postman/ThunderClient; la herramient
 Con los datos incluidos, antes de agregar nuevas observaciones, el historial del lote 1 contiene las observaciones 1 y 4; el filtro por alerta `Crítico` devuelve el lote 3; y el filtro por técnico 1 devuelve las observaciones 1, 3 y 5. El lote 3 aparece en la consulta de alerta crítica aunque su observación posterior tenga nivel `Atención`, porque se consulta todo el historial.
 
 ## Estado actual de los lotes
+
+La columna **Alertas de clima** muestra avisos de AgroTec basados en el pronóstico de Open-Meteo para las próximas 24 horas. Identifica tormentas, lluvia intensa, ráfagas de al menos 60 km/h y temperaturas de 0 °C o menos. El acceso público de Open-Meteo es gratuito para uso no comercial. [Documentación de Open-Meteo](https://open-meteo.com/en/docs) · [Condiciones de acceso](https://open-meteo.com/en/pricing)
+
+Georef Argentina ubica el centro de la localidad como referencia regional. Usá el nombre de la localidad en el campo de ubicación, preferentemente con el formato «Rosario, Santa Fe». Si hay homónimos, precisá la localidad y la provincia. [Georef Argentina](https://www.argentina.gob.ar/georef)
 
 GET `/lotes/estado` (Admin) y la vista `/web/tablero` ((Admin, Ingeniero y Cliente)) muestran el nivel vigente de cada lote: el `nivelAlerta` de su observación más reciente. Complementan a `/lotes?alerta=`, que busca en todo el historial: con los datos de ejemplo, el lote 3 aparece en `?alerta=Crítico` por una observación anterior, pero su estado actual es `Atención`.
 

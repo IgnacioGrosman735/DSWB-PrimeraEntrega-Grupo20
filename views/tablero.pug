@@ -17,6 +17,8 @@ html(lang="es")
                         tr
                             th(scope="col") Lote
                             th(scope="col") Estado
+                            th(scope="col") Alertas de clima
+                            th(scope="col") Prob. Precipitación
                             th(scope="col") Última observación
                             th(scope="col") Estado del cultivo
                             th(scope="col") Ubicación
@@ -29,6 +31,14 @@ html(lang="es")
                                 td= lote._id
                                 td
                                     span.nivel(class=claseNivel[lote.nivelActual])= lote.nivelActual
+                                td
+                                    if lote.clima && lote.clima.pronostico
+                                        each aviso in lote.clima.pronostico.avisos
+                                            div
+                                                span.nivel.nivel-atencion= aviso
+                                td
+                                    if lote.clima && lote.clima.pronostico && lote.clima.pronostico.probabilidadPrecipitacion != null
+                                        = lote.clima.pronostico.probabilidadPrecipitacion + " %"
                                 td= lote.fechaUltima || "—"
                                 td= lote.estadoCultivo || "—"
                                 td= lote.ubicacion

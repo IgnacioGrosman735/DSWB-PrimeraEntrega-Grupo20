@@ -11,6 +11,9 @@ html(lang="es")
             p#roles-menu Roles: #{roles.join(', ') || 'Sin rol asignado'}
             p(hidden=!(roles.includes('Admin') || roles.includes('Ingeniero') || roles.includes('Cliente')))
                 a(href="/web/tablero") Tablero de estado de lotes
+            if roles.includes('Admin') || roles.includes('Ingeniero') || roles.includes('Cliente')
+                p
+                    a(href="/web/asistente") Asistente de AgroTec
             div#opciones-admin(hidden=!roles.includes('Admin'))
                 p
                     a(href="/web/lotes") Administrar lotes
